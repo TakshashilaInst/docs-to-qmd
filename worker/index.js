@@ -19,7 +19,7 @@
  */
 
 // ── Update these if the repo is ever renamed ────────────────────────────────
-const REPO     = "shakunasanaxe/docs-to-qmd";
+const REPO     = "TakshashilaInst/docs-to-qmd";
 const WORKFLOW = "convert.yml";
 const BRANCH   = "gh-pages";
 

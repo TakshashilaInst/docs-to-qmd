@@ -139,7 +139,7 @@
       return;
     }
 
-    const REPO = "shakunasanaxe/docs-to-qmd";
+    const REPO = "TakshashilaInst/docs-to-qmd";
     if (actionsLink) {
       actionsLink.href = `https://github.com/${REPO}/actions/runs/${runId}`;
       actionsLink.hidden = false;
