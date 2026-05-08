@@ -1,0 +1,13 @@
+# Render.com deployment configuration
+# https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: takshashila-qmd-converter
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter          # free tier — upgrade if PDF rendering times out
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: 8000

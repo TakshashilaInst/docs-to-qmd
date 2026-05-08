@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Takshashila QMD Converter</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <div class="logo-row">
+        <span class="logo-text">Takshashila Institution</span>
+        <span class="logo-divider">|</span>
+        <span class="tool-name">QMD Converter</span>
+      </div>
+      <p class="header-sub">Convert a Google Doc to Quarto Markdown (.qmd) and a rendered PDF — ready to upload.</p>
+    </div>
+  </header>
+
+  <main>
+    <form id="convertForm" novalidate>
+
+      <!-- ── Step 1: Google Doc URL ─────────────────────────────────────── -->
+      <section class="card">
+        <h2><span class="step">1</span> Google Doc URL</h2>
+        <div class="tip">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M18 10A8 8 0 1 1 2 10a8 8 0 0 1 16 0Zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM9 9a.75.75 0 0 0 0 1.5h.253a.25.25 0 0 1 .244.304l-.459 2.066A1.75 1.75 0 0 0 10.747 15H11a.75.75 0 0 0 0-1.5h-.253a.25.25 0 0 1-.244-.304l.459-2.066A1.75 1.75 0 0 0 9.253 9H9Z" clip-rule="evenodd" /></svg>
+          The document must be shared as <strong>Anyone with the link can view</strong> (Share → Change → Anyone with the link).
+        </div>
+        <label for="google_doc_url">Google Docs link</label>
+        <input
+          type="url"
+          id="google_doc_url"
+          name="google_doc_url"
+          placeholder="https://docs.google.com/document/d/…/edit"
+          required
+        />
+      </section>
+
+      <!-- ── Step 2: Paper metadata ─────────────────────────────────────── -->
+      <section class="card">
+        <h2><span class="step">2</span> Paper Metadata</h2>
+        <p class="card-desc">These fields populate the YAML frontmatter of the .qmd file.</p>
+
+        <div class="field-grid">
+          <div class="field full">
+            <label for="title">Title <span class="req">*</span></label>
+            <input type="text" id="title" name="title" placeholder="European Rearmament" required />
+          </div>
+
+          <div class="field full">
+            <label for="subtitle">Subtitle</label>
+            <input type="text" id="subtitle" name="subtitle" placeholder="Precursors, Policies, and Possibilities for India" />
+          </div>
+
+          <div class="field full">
+            <label for="authors">Author(s) <span class="req">*</span> <span class="hint">comma-separated</span></label>
+            <input type="text" id="authors" name="authors" placeholder="Anushka Saxena, Anupam Manur" required />
+          </div>
+
+          <div class="field">
+            <label for="date">Date <span class="req">*</span></label>
+            <input type="date" id="date" name="date" required />
+          </div>
+
+          <div class="field">
+            <label for="categories">Categories <span class="hint">comma-separated</span></label>
+            <input type="text" id="categories" name="categories" placeholder="Defence, Indian Foreign Policy" />
+          </div>
+
+          <div class="field full">
+            <label for="tldr">TL;DR summary</label>
+            <textarea id="tldr" name="tldr" rows="3" placeholder="A one-sentence summary shown on the website card."></textarea>
+          </div>
+
+          <div class="field">
+            <label for="doctype">Document type</label>
+            <input type="text" id="doctype" name="doctype" placeholder="Takshashila Discussion Document 2025-06" />
+          </div>
+
+          <div class="field">
+            <label for="docversion">Version</label>
+            <input type="text" id="docversion" name="docversion" placeholder="Version 1.0, March 2026" />
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Step 3: Output settings ────────────────────────────────────── -->
+      <section class="card">
+        <h2><span class="step">3</span> Output Settings</h2>
+
+        <div class="field">
+          <label for="pdf_filename">Output filename stem <span class="req">*</span></label>
+          <div class="filename-row">
+            <input type="text" id="pdf_filename" name="pdf_filename"
+              placeholder="EU-Rearm-India-09032026" required
+              pattern="[A-Za-z0-9_\-]+"
+              title="Letters, numbers, hyphens and underscores only" />
+            <span class="filename-ext">.qmd / .pdf</span>
+          </div>
+          <p class="field-hint">Use the format <code>ShortTitle-DDMMYYYY</code>. No spaces.</p>
+        </div>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="render_pdf" name="render_pdf" checked />
+          <label for="render_pdf">Render PDF (requires Quarto + TinyTeX on the server)</label>
+        </div>
+      </section>
+
+      <!-- ── Aside tip ───────────────────────────────────────────────────── -->
+      <section class="card aside-guide">
+        <h2>Aside / Sidenote Guide</h2>
+        <p>To mark a sidenote in your Google Doc, wrap the text with <code>[aside]</code> and <code>[/aside]</code> on their own lines (or at the start/end of a paragraph):</p>
+        <pre>[aside]
+Bond Credit Ratings such as AAA (highest)…
+[/aside]</pre>
+        <p>Power users can also write <code>:::{.aside}</code> … <code>:::</code> directly — it will be passed through unchanged.</p>
+      </section>
+
+      <!-- ── Submit ──────────────────────────────────────────────────────── -->
+      <div class="submit-row">
+        <button type="submit" id="convertBtn" class="btn-primary">
+          <span class="btn-label">Convert</span>
+          <span class="spinner" hidden></span>
+        </button>
+      </div>
+
+    </form>
+
+    <!-- ── Result area ─────────────────────────────────────────────────── -->
+    <div id="resultArea" hidden>
+      <section class="card result-card" id="successCard" hidden>
+        <div class="result-icon success-icon">✓</div>
+        <h2>Done!</h2>
+        <p id="resultMsg"></p>
+        <div class="download-buttons">
+          <a id="dlZip" href="#" class="btn-primary" download>Download .zip (QMD + PDF + images)</a>
+          <a id="dlQmd" href="#" class="btn-secondary" download>Download .qmd only</a>
+          <a id="dlPdf" href="#" class="btn-secondary" download>Download .pdf only</a>
+        </div>
+        <button class="btn-text" id="convertAnother">Convert another document →</button>
+      </section>
+
+      <section class="card result-card" id="errorCard" hidden>
+        <div class="result-icon error-icon">✕</div>
+        <h2>Something went wrong</h2>
+        <p id="errorMsg" class="error-text"></p>
+        <button class="btn-secondary" id="tryAgainBtn">Try again</button>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <p>Internal tool — Takshashila Institution &nbsp;·&nbsp;
+      <a href="https://github.com/takshashila-institution/qmd-converter" target="_blank">GitHub</a>
+    </p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

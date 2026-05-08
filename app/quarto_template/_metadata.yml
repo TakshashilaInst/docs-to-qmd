@@ -1,0 +1,11 @@
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    toc-expand: true
+    toc-location: left
+  pdf:
+    template: pdf-template.tex
+    pdf-engine: xelatex
+    toc: false
+    keep-tex: false

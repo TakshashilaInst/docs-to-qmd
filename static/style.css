@@ -1,0 +1,353 @@
+/* ── Reset & base ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --brand:       #8B1A1A;   /* Takshashila deep red */
+  --brand-dark:  #6a1313;
+  --brand-light: #f9f0f0;
+  --text:        #1a1a1a;
+  --muted:       #5a5a5a;
+  --border:      #ddd;
+  --bg:          #f4f4f2;
+  --card-bg:     #ffffff;
+  --success:     #1a6e35;
+  --error:       #b91c1c;
+  --radius:      8px;
+  --shadow:      0 1px 4px rgba(0,0,0,.08), 0 2px 12px rgba(0,0,0,.06);
+  --font:        'Georgia', serif;
+  --mono:        'Menlo', 'Consolas', monospace;
+}
+
+body {
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--text);
+  background: var(--bg);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header ───────────────────────────────────────────────────────────────── */
+header {
+  background: var(--brand);
+  color: #fff;
+  padding: 1.5rem 0;
+}
+.header-inner {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+.logo-row {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  font-size: 1.1rem;
+  font-weight: bold;
+  letter-spacing: .02em;
+  margin-bottom: .35rem;
+}
+.logo-divider { opacity: .5; }
+.tool-name { font-weight: normal; opacity: .9; }
+.header-sub { font-size: .92rem; opacity: .85; font-style: italic; }
+
+/* ── Main / layout ────────────────────────────────────────────────────────── */
+main {
+  flex: 1;
+  max-width: 760px;
+  width: 100%;
+  margin: 2rem auto 3rem;
+  padding: 0 1.5rem;
+}
+
+/* ── Cards ────────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.6rem 1.8rem;
+  margin-bottom: 1.4rem;
+}
+.card h2 {
+  font-size: 1.05rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  margin-bottom: 1rem;
+  color: var(--brand);
+}
+.card-desc {
+  font-size: .88rem;
+  color: var(--muted);
+  margin-top: -.5rem;
+  margin-bottom: 1rem;
+}
+.step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  background: var(--brand);
+  color: #fff;
+  border-radius: 50%;
+  font-size: .78rem;
+  font-family: sans-serif;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+/* ── Tip box ──────────────────────────────────────────────────────────────── */
+.tip {
+  display: flex;
+  align-items: flex-start;
+  gap: .5rem;
+  background: var(--brand-light);
+  border-left: 3px solid var(--brand);
+  border-radius: 4px;
+  padding: .7rem .9rem;
+  font-size: .88rem;
+  color: var(--brand-dark);
+  margin-bottom: 1rem;
+}
+.tip svg { flex-shrink: 0; margin-top: 2px; }
+
+/* ── Form fields ──────────────────────────────────────────────────────────── */
+label {
+  display: block;
+  font-size: .88rem;
+  font-weight: bold;
+  margin-bottom: .3rem;
+  color: var(--text);
+}
+.hint {
+  font-weight: normal;
+  color: var(--muted);
+  font-size: .82rem;
+}
+.req { color: var(--brand); }
+
+input[type="text"],
+input[type="url"],
+input[type="date"],
+textarea {
+  width: 100%;
+  padding: .55rem .75rem;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font-family: var(--font);
+  font-size: .95rem;
+  color: var(--text);
+  background: #fff;
+  transition: border-color .15s;
+}
+input:focus, textarea:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(139,26,26,.1);
+}
+input.error, textarea.error {
+  border-color: var(--error);
+}
+textarea { resize: vertical; }
+
+.field { margin-bottom: 1rem; }
+.field:last-child { margin-bottom: 0; }
+.field-hint {
+  font-size: .8rem;
+  color: var(--muted);
+  margin-top: .3rem;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 1.2rem;
+}
+.field-grid .field.full { grid-column: 1 / -1; }
+
+.filename-row {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+.filename-row input { flex: 1; }
+.filename-ext {
+  font-size: .88rem;
+  color: var(--muted);
+  white-space: nowrap;
+  font-family: var(--mono);
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  margin-top: .8rem;
+  font-size: .92rem;
+}
+.checkbox-row input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--brand);
+  cursor: pointer;
+}
+.checkbox-row label {
+  margin: 0;
+  font-weight: normal;
+  cursor: pointer;
+}
+
+/* ── Aside guide card ─────────────────────────────────────────────────────── */
+.aside-guide {
+  background: #fafaf8;
+  border-color: #ccc;
+}
+.aside-guide h2 {
+  font-size: .95rem;
+  color: var(--muted);
+}
+.aside-guide p { font-size: .88rem; margin-bottom: .6rem; }
+.aside-guide pre {
+  background: #f0ede8;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: .7rem 1rem;
+  font-family: var(--mono);
+  font-size: .82rem;
+  margin-bottom: .6rem;
+  overflow-x: auto;
+}
+code {
+  font-family: var(--mono);
+  font-size: .88em;
+  background: #f0ede8;
+  padding: .1em .35em;
+  border-radius: 3px;
+}
+.aside-guide pre code { background: none; padding: 0; }
+
+/* ── Buttons ──────────────────────────────────────────────────────────────── */
+.submit-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: .5rem;
+}
+.btn-primary {
+  background: var(--brand);
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: .7rem 1.8rem;
+  font-size: 1rem;
+  font-family: var(--font);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  text-decoration: none;
+  transition: background .15s;
+}
+.btn-primary:hover { background: var(--brand-dark); }
+.btn-primary:disabled {
+  background: #aaa;
+  cursor: not-allowed;
+}
+.btn-secondary {
+  background: #fff;
+  color: var(--brand);
+  border: 1.5px solid var(--brand);
+  border-radius: 5px;
+  padding: .6rem 1.4rem;
+  font-size: .95rem;
+  font-family: var(--font);
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  transition: background .15s;
+}
+.btn-secondary:hover { background: var(--brand-light); }
+.btn-text {
+  background: none;
+  border: none;
+  color: var(--brand);
+  font-family: var(--font);
+  font-size: .9rem;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  margin-top: .8rem;
+}
+
+/* ── Spinner ──────────────────────────────────────────────────────────────── */
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Result area ──────────────────────────────────────────────────────────── */
+#resultArea { margin-top: 1.4rem; }
+
+.result-card {
+  text-align: center;
+  padding: 2.5rem 2rem;
+}
+.result-icon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  font-size: 1.4rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+}
+.success-icon { background: #d1fae5; color: var(--success); }
+.error-icon   { background: #fee2e2; color: var(--error); }
+
+.result-card h2 {
+  justify-content: center;
+  margin-bottom: .5rem;
+  color: var(--text);
+}
+.result-card p { font-size: .95rem; color: var(--muted); margin-bottom: 1.4rem; }
+.error-text { color: var(--error) !important; font-size: .9rem !important; }
+
+.download-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+/* ── Footer ───────────────────────────────────────────────────────────────── */
+footer {
+  text-align: center;
+  padding: 1rem;
+  font-size: .82rem;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+}
+footer a { color: var(--brand); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+@media (max-width: 540px) {
+  .field-grid { grid-template-columns: 1fr; }
+  .field-grid .field.full { grid-column: 1; }
+  .download-buttons { flex-direction: column; align-items: center; }
+  .card { padding: 1.2rem 1.1rem; }
+}

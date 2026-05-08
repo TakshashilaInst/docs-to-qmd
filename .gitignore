@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+.DS_Store
+tmp/
+debug_tmp/
+*.zip
+*.pdf
+*.docx
+worker/.wrangler/

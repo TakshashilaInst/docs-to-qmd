@@ -1,0 +1,11 @@
+version: "3.9"
+
+services:
+  converter:
+    build: .
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    # Optional: mount a temp volume if you want to inspect render artifacts
+    # volumes:
+    #   - ./debug_tmp:/tmp

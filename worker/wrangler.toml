@@ -1,0 +1,8 @@
+name = "tsh-converter-proxy"
+main = "index.js"
+compatibility_date = "2024-04-01"
+
+# Secret (never committed — set via CLI):
+#   npx wrangler secret put GH_TOKEN
+#
+# The PAT only needs the "workflow" scope on the converter repo.

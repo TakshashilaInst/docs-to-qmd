@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Takshashila QMD Converter</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <img src="logo.png" alt="Takshashila Institution" class="header-logo" />
+      <div class="header-text">
+        <div class="logo-row">
+          <span class="logo-text">Takshashila Institution</span>
+          <span class="logo-divider">|</span>
+          <span class="tool-name">QMD Converter</span>
+        </div>
+        <p class="header-sub">Convert a Google Doc to Quarto Markdown (.qmd) and a rendered PDF — ready to upload.</p>
+      </div>
+    </div>
+    <div class="accent-bar"></div>
+  </header>
+
+  <main>
+    <form id="convertForm" novalidate>
+
+      <!-- ── Step 0: Document type ──────────────────────────────────────────── -->
+      <section class="card">
+        <h2><span class="step">1</span> Document Type</h2>
+        <div class="doctype-toggle">
+          <label class="doctype-option">
+            <input type="radio" name="mode" value="paper" checked />
+            <span class="doctype-btn">
+              <span class="toggle-icon">📄</span>
+              <span class="toggle-label">Research Paper</span>
+              <span class="toggle-sub">QMD + PDF via Typst (~3–5 min)</span>
+            </span>
+          </label>
+          <label class="doctype-option">
+            <input type="radio" name="mode" value="blog" />
+            <span class="doctype-btn">
+              <span class="toggle-icon">✍️</span>
+              <span class="toggle-label">Blog Post</span>
+              <span class="toggle-sub">QMD only (~1–2 min)</span>
+            </span>
+          </label>
+        </div>
+      </section>
+
+      <!-- ── How it works ───────────────────────────────────────────────────── -->
+      <details class="card how-it-works">
+        <summary>
+          <span class="how-icon">📖</span>
+          <span>How it works &amp; Google Docs conventions</span>
+        </summary>
+        <div class="how-body">
+          <h3>Workflow</h3>
+          <ol>
+            <li>Write your paper or blog post in Google Docs using normal heading styles, Google footnotes, and optionally <code>[aside]</code> / <code>[/aside]</code> tags for sidenotes.</li>
+            <li>Set share permissions to <strong>Anyone with the link can view</strong> (Share → Change → Anyone with the link).</li>
+            <li>Paste the URL into this converter, fill in the metadata form, and click <strong>Convert</strong>.</li>
+            <li>Download the <code>.zip</code> containing:
+              <ul>
+                <li><code>{filename}.qmd</code> — ready to upload to the publications repo</li>
+                <li><code>assets/{filename}.pdf</code> — the rendered PDF <span class="paper-badge">Paper only</span></li>
+                <li><code>images/</code> — all extracted images</li>
+              </ul>
+            </li>
+          </ol>
+          <h3>Google Docs conventions</h3>
+          <table class="conventions-table">
+            <thead>
+              <tr><th>Feature</th><th>How to write it</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Headings</td><td>Use Google Docs heading styles (Heading 1, Heading 2, Heading 3)</td></tr>
+              <tr><td>Bold / Italic</td><td>Normal Google Docs bold / italic</td></tr>
+              <tr><td>Links</td><td>Normal hyperlinks</td></tr>
+              <tr><td>Footnotes</td><td>Insert → Footnote in Google Docs</td></tr>
+              <tr><td>Sidenotes / asides</td><td>Wrap text in <code>[aside]</code> and <code>[/aside]</code> on their own lines</td></tr>
+              <tr><td>Images</td><td>Insert normally; add a short caption as the paragraph immediately after</td></tr>
+              <tr><td>Quarto power users</td><td>Can write <code>:::{.aside}</code>, <code>[^N]</code>, etc. directly — these are passed through unchanged</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+
+      <!-- ── Step 1: Google Doc URL ─────────────────────────────────────────── -->
+      <section class="card">
+        <h2><span class="step">2</span> Google Doc URL</h2>
+        <div class="tip">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M18 10A8 8 0 1 1 2 10a8 8 0 0 1 16 0Zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM9 9a.75.75 0 0 0 0 1.5h.253a.25.25 0 0 1 .244.304l-.459 2.066A1.75 1.75 0 0 0 10.747 15H11a.75.75 0 0 0 0-1.5h-.253a.25.25 0 0 1-.244-.304l.459-2.066A1.75 1.75 0 0 0 9.253 9H9Z" clip-rule="evenodd" /></svg>
+          The document must be shared as <strong>Anyone with the link can view</strong> (Share → Change → Anyone with the link).
+        </div>
+        <label for="google_doc_url">Google Docs link</label>
+        <input
+          type="url"
+          id="google_doc_url"
+          name="google_doc_url"
+          placeholder="https://docs.google.com/document/d/…/edit"
+          required
+        />
+      </section>
+
+      <!-- ── Step 2: Metadata ───────────────────────────────────────────────── -->
+      <section class="card">
+        <h2><span class="step">3</span> Metadata</h2>
+        <p class="card-desc">These fields populate the YAML frontmatter of the .qmd file.</p>
+
+        <div class="field-grid">
+          <div class="field full">
+            <label for="title">Title <span class="req">*</span></label>
+            <input type="text" id="title" name="title" placeholder="European Rearmament" required />
+          </div>
+
+          <div class="field full paper-only">
+            <label for="subtitle">Subtitle</label>
+            <input type="text" id="subtitle" name="subtitle" placeholder="Precursors, Policies, and Possibilities for India" />
+          </div>
+
+          <div class="field full">
+            <label for="authors">Author(s) <span class="req">*</span> <span class="hint">comma-separated</span></label>
+            <input type="text" id="authors" name="authors" placeholder="Anushka Saxena, Anupam Manur" required />
+          </div>
+
+          <div class="field">
+            <label for="date">Date <span class="req">*</span></label>
+            <input type="date" id="date" name="date" required />
+          </div>
+
+          <div class="field">
+            <label for="categories">Categories <span class="hint">comma-separated</span></label>
+            <input type="text" id="categories" name="categories" placeholder="Defence, Indian Foreign Policy" />
+          </div>
+
+          <div class="field full paper-only">
+            <label for="tldr">TL;DR summary</label>
+            <textarea id="tldr" name="tldr" rows="3" placeholder="A one-sentence summary shown on the website card."></textarea>
+          </div>
+
+          <div class="field paper-only">
+            <label for="doctype">Document type</label>
+            <input type="text" id="doctype" name="doctype" placeholder="Takshashila Discussion Document 2025-06" />
+          </div>
+
+          <div class="field paper-only">
+            <label for="docversion">Version</label>
+            <input type="text" id="docversion" name="docversion" placeholder="Version 1.0, March 2026" />
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Step 3: Output settings ────────────────────────────────────────── -->
+      <section class="card">
+        <h2><span class="step">4</span> <span class="step3-title">Output Settings</span></h2>
+
+        <!-- Paper only -->
+        <div class="paper-only">
+          <div class="field">
+            <label for="pdf_filename">Output filename stem <span class="req">*</span></label>
+            <div class="filename-row">
+              <input type="text" id="pdf_filename" name="pdf_filename"
+                placeholder="EU-Rearm-India-09032026"
+                pattern="[A-Za-z0-9_\-]+"
+                title="Letters, numbers, hyphens and underscores only" />
+              <span class="filename-ext">.qmd / .pdf</span>
+            </div>
+            <p class="field-hint">Use the format <code>ShortTitle-DDMMYYYY</code>. No spaces.</p>
+          </div>
+
+          <div class="checkbox-row">
+            <input type="checkbox" id="render_pdf" name="render_pdf" checked />
+            <label for="render_pdf">Render PDF (powered by Typst)</label>
+          </div>
+        </div>
+
+        <!-- Blog only -->
+        <div class="blog-only" style="display:none">
+          <div class="field">
+            <label for="slug">URL slug <span class="req">*</span></label>
+            <div class="filename-row">
+              <input type="text" id="slug" name="slug"
+                placeholder="my-blog-post-title"
+                pattern="[A-Za-z0-9_\-]+"
+                title="Letters, numbers, hyphens and underscores only" />
+              <span class="filename-ext">.qmd</span>
+            </div>
+            <p class="field-hint">Lowercase, hyphens only. Matches the blog post URL slug.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Aside tip (shown for both paper and blog) ─────────────────────── -->
+      <section class="card aside-guide">
+        <h2>Aside / Sidenote Guide</h2>
+        <p>To mark a sidenote in your Google Doc, wrap the text with <code>[aside]</code> and <code>[/aside]</code> on their own lines (or at the start/end of a paragraph):</p>
+        <pre>[aside]
+Bond Credit Ratings such as AAA (highest)…
+[/aside]</pre>
+        <p>Power users can also write <code>:::{.aside}</code> … <code>:::</code> directly — it will be passed through unchanged.</p>
+      </section>
+
+      <!-- ── Submit ──────────────────────────────────────────────────────────── -->
+      <div class="submit-row">
+        <button type="submit" id="convertBtn" class="btn-primary">
+          <span class="btn-label">Convert</span>
+          <svg id="btnArrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="18" height="18" aria-hidden="true"><path fill-rule="evenodd" d="M3 10a.75.75 0 0 1 .75-.75h10.638L10.23 5.29a.75.75 0 1 1 1.04-1.08l5.5 5.25a.75.75 0 0 1 0 1.08l-5.5 5.25a.75.75 0 1 1-1.04-1.08l4.158-3.96H3.75A.75.75 0 0 1 3 10Z" clip-rule="evenodd" /></svg>
+          <span class="spinner" hidden></span>
+        </button>
+      </div>
+
+    </form>
+
+    <!-- ── Progress area ──────────────────────────────────────────────────── -->
+    <div id="progressArea" hidden>
+      <section class="card progress-card">
+        <p id="progressMsg" class="progress-msg"></p>
+        <a id="actionsLink" href="#" target="_blank" rel="noopener" class="btn-text" hidden>
+          View job on GitHub Actions →
+        </a>
+      </section>
+    </div>
+
+    <!-- ── Result area ─────────────────────────────────────────────────────── -->
+    <div id="resultArea" hidden>
+      <section class="card result-card" id="successCard" hidden>
+        <div class="result-icon success-icon">✓</div>
+        <h2>Done!</h2>
+        <p id="resultMsg"></p>
+        <div class="download-buttons">
+          <a id="dlZip" href="#" class="btn-primary" download>Download .zip</a>
+        </div>
+        <button class="btn-text" id="convertAnother">Convert another document →</button>
+      </section>
+
+      <section class="card result-card" id="errorCard" hidden>
+        <div class="result-icon error-icon">✕</div>
+        <h2>Something went wrong</h2>
+        <p id="errorMsg" class="error-text"></p>
+        <button class="btn-text" id="tryAgainBtn" style="margin-top:1rem">Try again</button>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <p>Internal tool — Takshashila Institution &nbsp;·&nbsp;
+      <a href="https://github.com/AshwinPrasadRao/docs-to-qmd" target="_blank" rel="noopener">GitHub</a>
+    </p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

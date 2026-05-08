@@ -1,0 +1,485 @@
+\documentclass[10pt]{article}
+% Required packages
+\usepackage{xcolor}
+% \usepackage{tikz}
+\usepackage{pagecolor}
+\usepackage{marginnote}
+\usepackage[a4paper]{geometry}
+\usepackage{fancyhdr}
+\usepackage{ifthen}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{calc}
+\usepackage{etoolbox}
+% \usepackage{footnotehyper}
+\usepackage{graphicx}
+% \usepackage{grffile}
+% load xurl before hyperref for better url handling.
+\usepackage[obeyspaces,spaces,hyphens]{xurl}
+\usepackage[hyperfootnotes=true]{hyperref}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{unicode-math}
+\usepackage{lmodern}
+\usepackage{ifxetex,ifluatex}
+\usepackage{fixltx2e}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{textcomp}
+\usepackage{upquote}
+\usepackage{microtype}
+%settings to avoid hyphenation and overfill.
+\hyphenpenalty=10000
+\exhyphenpenalty=10000
+\tolerance=1000
+\emergencystretch=3em
+\usepackage{parskip}
+\usepackage{bookmark}
+\usepackage{sidenotes}
+\let\oldmarginpar\marginpar
+% \usepackage{endnotes}
+% \let\footnote=\endnote
+\usepackage{enotez}
+\setenotez{backref=true}
+\setenotez{list-name=Endnotes}
+\let\oldfootnote=\footnote
+\renewcommand{\footnote}[1] {\endnote{#1}}
+\usepackage{float}
+% Sets the main font to Inter.
+% If using lualatex, this command won't work.
+\usepackage{fontspec}
+\setmainfont{Inter}
+% \newfontfamily\TshilaSerifFont{Times New Roman}
+\newfontfamily\TshilaSerifFont{TeX Gyre Pagella}
+% Setting package for biblatex
+\usepackage[style=authoryear,backend=biber]{biblatex}
+% \usepackage{biblatex}
+$if(listings)$
+\usepackage{listings}
+\newcommand{\passthrough}[1]{#1}
+\lstset{defaultdialect=[5.3]Lua}
+\lstset{defaultdialect=[x86masm]Assembler}
+$endif$
+
+$if(lhs)$
+\lstnewenvironment{code}{\lstset{language=Haskell, basicstyle=\small\ttfamily}}{}
+$endif$
+
+$if(verbatim-in-note)$
+\usepackage{fancyvrb}
+$endif$
+
+$if(tables)$
+\usepackage{longtable,booktabs,array}
+\usepackage{calc}
+\usepackage{etoolbox}
+\usepackage{tabularx}
+\usepackage{adjustbox}
+\usepackage{ragged2e}
+
+% Better table formatting
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+
+% Configure table spacing and appearance
+\setlength{\tabcolsep}{15pt}
+\renewcommand{\arraystretch}{1.6}
+
+% Better rules for tables
+\setlength{\heavyrulewidth}{0.12em}
+\setlength{\lightrulewidth}{0.08em}
+\setlength{\cmidrulewidth}{0.05em}
+\setlength{\belowrulesep}{0.8ex}
+\setlength{\belowbottomsep}{0pt}
+\setlength{\aboverulesep}{0.5ex}
+\setlength{\abovetopsep}{0pt}
+
+% Define new column types for better formatting
+\newcolumntype{L}[1]{>{\RaggedRight\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\RaggedLeft\arraybackslash}p{#1}}
+
+% Define column types with vertical separators
+\newcolumntype{V}{!{\vrule width 0.8pt}}
+\newcolumntype{v}{!{\vrule width 0.5pt}}
+
+% Custom table environment for better formatting with vertical lines
+\newenvironment{vtable}{%
+  \small%
+  \setlength{\LTleft}{0pt}%
+  \setlength{\LTright}{0pt}%
+  \begin{longtable}{@{}L{0.4\textwidth}VR{0.2\textwidth}VR{0.2\textwidth}VR{0.15\textwidth}@{}}%
+}{%
+  \end{longtable}%
+}
+
+% Custom table environment for wide tables
+\newenvironment{widetable}[1][]{%
+  \begin{adjustbox}{width=\textwidth,center,#1}%
+}{%
+  \end{adjustbox}%
+}
+
+% Configure longtable to use full width and better spacing
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+
+% Improve table font size and spacing
+\AtBeginEnvironment{longtable}{\small}
+\AtBeginEnvironment{tabular}{\small}
+
+% Add vertical lines to standard tables
+\let\oldtabular\tabular
+\let\endoldtabular\endtabular
+\renewenvironment{tabular}[1]{%
+  \small%
+  \def\temparg{#1}%
+  \def\addvlines##1{##1}% Simple passthrough for now
+  \oldtabular{\addvlines{#1}}%
+}{%
+  \endoldtabular%
+}
+
+$endif$
+
+% Define commands for Pandoc
+% Adding an extra command since the pdf render fails
+\providecommand{\pandocbounded}[1]{#1}
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+% Define other Pandoc commands
+\newcommand{\passthrough}[1]{#1}
+
+% Hyperref setup
+\hypersetup{
+    unicode=true,
+    pdfborder={0 0 0},
+    breaklinks=true,
+    hyperfootnotes=true,
+    colorlinks,
+    linkcolor=blue,
+    urlcolor=blue}
+
+% Add custom break points to xurl. In our case, we want to account for %20
+\expandafter\def\expandafter\UrlBreaks\expandafter{%
+    \UrlBreaks
+    \do\/\do\- % breaks at slash and hyphen
+    \do\.      % breaks at dots
+    \do\_      % breaks at underscores
+    \do\%      % breaks at percent signs
+}
+
+% CSL references
+% This code below is replacing the earlier citeproc code. Copied from https://github.com/jgm/citeproc/issues/135
+$if(csl-refs)$
+% definitions for citeproc citations
+\NewDocumentCommand\citeproctext{}{}
+\NewDocumentCommand\citeproc{mm}{%
+  \begingroup\def\citeproctext{#2}\cite{#1}\endgroup}
+\makeatletter
+ % allow citations to break across lines
+ \let\@cite@ofmt\@firstofone
+ % avoid brackets around text for \cite:
+ \def\@biblabel#1{}
+ \def\@cite#1#2{{#1\if@tempswa , #2\fi}}
+\makeatother
+\newlength{\cslhangindent}
+\setlength{\cslhangindent}{1.5em}
+\newlength{\csllabelwidth}
+\setlength{\csllabelwidth}{3em}
+\newenvironment{CSLReferences}[2] % #1 hanging-indent, #2 entry-spacing
+ {\begin{list}{}{%
+  \setlength{\itemindent}{0pt}
+  \setlength{\leftmargin}{0pt}
+  \setlength{\parsep}{0pt}
+  % turn on hanging indent if param 1 is 1
+  \ifodd #1
+   \setlength{\leftmargin}{\cslhangindent}
+   \setlength{\itemindent}{-1\cslhangindent}
+  \fi
+  % set entry spacing
+  \setlength{\itemsep}{#2\baselineskip}}}
+ {\end{list}}
+\usepackage{calc}
+\newcommand{\CSLBlock}[1]{\hfill\break#1\hfill\break}
+\newcommand{\CSLLeftMargin}[1]{\parbox[t]{\csllabelwidth}{\strut#1\strut}}
+\newcommand{\CSLRightInline}[1]{\parbox[t]{\linewidth - \csllabelwidth}{\strut#1\strut}}
+\newcommand{\CSLIndent}[1]{\hspace{\cslhangindent}#1}
+$endif$
+
+% Define Takshashila colors
+\definecolor{primarycolor}{RGB}{97, 13, 61}
+\definecolor{takshashilayellow}{RGB}{255, 193, 7}
+% Configure margins for sidenotes
+\geometry{
+  % a4paper,
+ % landscape,
+  left=1in,
+  right=3in,
+  % left=1.5in,
+  % right=3.5in,
+  top=1.5in,
+  bottom=1.5in,
+  marginparwidth=2in,
+  marginparsep=0.3in
+}
+
+\setcounter{secnumdepth}{3}
+\renewcommand{\thesection}{\arabic{section}}
+\renewcommand{\thesubsection}{\thesection.\arabic{subsection}}
+\renewcommand{\thesubsubsection}{\thesubsection.\arabic{subsubsection}}
+
+% Configure headers and footers
+\pagestyle{fancy}
+\fancyhf{}
+% This will move the header and footer beyond text width
+\fancyhfoffset[LE,RO]{2in}
+\fancyhead[L]{\textcolor{primarycolor}{\normalfont\TshilaSerifFont \textbf{$doctype$}}}
+\fancyhead[R]{\textcolor{primarycolor}{\normalfont\TshilaSerifFont \textbf{$title$}}}
+\fancyfoot[L]{\textcolor{primarycolor}{\normalfont\TshilaSerifFont \thepage}}
+\fancyfoot[R]{\textcolor{primarycolor}{\normalfont\TshilaSerifFont \small TAKSHASHILA INSTITUTION}}
+\renewcommand{\headrulewidth}{0.5pt}
+\renewcommand{\footrulewidth}{0.5pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{primarycolor}\leaders\hrule height \headrulewidth\hfill}}
+\renewcommand{\footrule}{\hbox to\headwidth{\color{primarycolor}\leaders\hrule height \footrulewidth\hfill}}
+
+% Configure existing sidenote command for margin notes
+\renewcommand{\marginfont}{\fontsize{8}{10}\selectfont\color{primarycolor}}
+
+% Suppress default title
+\renewcommand{\maketitle}{}
+% Adjust paragraph spacing
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+
+\newcommand{\aside}[1]{%
+  \marginpar{%
+    \color{primarycolor}%
+    \vspace{3pt}%
+    \hrule height 0.5pt width \linewidth%
+    \vspace{3pt}%
+    \fontsize{9}{11}\selectfont%
+    \RaggedRight
+    \parbox{\marginparwidth}{#1}%
+    \vspace{3pt}%
+    \hrule height 0.5pt width \linewidth%
+  }%
+}
+
+\usepackage{tcolorbox}
+\newtcolorbox{inlinenote}{
+  colback=primarycolor!5,
+  colframe=primarycolor,
+  boxrule=0.4pt,
+  arc=3pt,
+  left=6pt,
+  right=6pt,
+  top=6pt,
+  bottom=6pt,
+  fontupper={\fontsize{9}{11}\selectfont\color{primarycolor}}
+}
+
+$if(highlighting-macros)$
+$highlighting-macros$
+$endif$
+
+\begin{document}
+
+% Custom Title Page
+\newgeometry{
+  % a4paper,
+  % landscape,
+  left=1in,
+  right=1.5in,
+  % left=1.5in,
+  % right=3.5in,
+  top=1.5in,
+  bottom=1.5in,
+  marginparwidth=2in,
+  marginparsep=0.3in
+}
+
+\begin{titlepage}
+{
+\TshilaSerifFont %
+\pagecolor{primarycolor}
+\color{white}
+
+% Logo and Institution Name
+\begin{minipage}[t]{0.4\textwidth}
+
+\includegraphics[width=6cm]{assets/main-logo-dark.png}
+\vspace{10pt}
+
+\end{minipage}%
+
+\vspace{10pt}
+
+% Main Title
+\begin{flushleft}
+{\fontsize{36}{42}\textbf{%
+\parbox{1.2\textwidth}{%
+\RaggedRight $title$%
+}}}
+\end{flushleft}
+
+\vspace{10pt}
+
+\begin{flushleft}
+    {\fontsize{24}{26}\textbf{%
+    \parbox{1.2\textwidth}{%
+    \RaggedRight $subtitle$%
+    }}}
+\end{flushleft}
+
+\vspace{20pt}
+
+\begin{minipage}[t]{\textwidth}
+    $if(author)$
+        {\fontsize{14}{18} $for(author)$$author.name$$sep$, $endfor$}\\[18pt]
+    $endif$
+    $if(doctype)$
+        {\fontsize{12}{14} $doctype$}\\
+    $endif$
+    $if(docversion)$
+        {\fontsize{12}{14} $docversion$}
+    $endif$
+\end{minipage}
+% \hfill
+
+\vspace{40pt}
+
+\begin{minipage}[t]{0.8\textwidth}
+    $if(tldr)$
+        {\fontsize{12}{14}\justifying $tldr$}
+    $endif$
+\end{minipage}
+
+\vspace{40pt}
+
+{\fontsize{10}{12}\textit{Recommended Citation:}}\\
+$if(recommended_citation)$
+{\fontsize{10}{12} $recommended_citation$.}
+$else$
+{\fontsize{10}{12} $for(author)$$author.name$$sep$, $endfor$, ``$title$'', $doctype$, $docversion$, The Takshashila Institution}
+$endif$
+
+\vspace{10pt}
+
+\begin{flushleft}
+    {\fontsize{12}{14}\textcopyright The Takshashila Institution, 2025}
+\end{flushleft}
+}
+\end{titlepage}
+
+\restoregeometry
+
+\newpage
+\nopagecolor
+\color{black}
+
+$if(toc)$
+{
+\hypersetup{linkcolor=$if(toccolor)$toccolor$else$black$endif$}
+\setcounter{tocdepth}{$toc-depth$}
+\tableofcontents
+}
+\newpage
+$endif$
+% Forces left alignment only for the body text
+% \RaggedRight
+$body$
+
+$if(natbib)$
+$if(bibliography)$
+$if(biblio-title)$
+$if(book-class)$
+\renewcommand\bibname{$biblio-title$}
+$else$
+\renewcommand\refname{$biblio-title$}
+$endif$
+$endif$
+\newpage
+\bibliography{$for(bibliography)$bibliography$sep$,$endfor$}
+$endif$
+$endif$
+
+$if(biblatex)$
+\newpage
+\printbibliography$if(biblio-title)$[title=$biblio-title$]$endif$
+$endif$
+
+$for(include-after)$
+$include-after$
+$endfor$
+\newgeometry{
+  % a4paper,
+  % landscape,
+  left=1in,
+  right=1in,
+  % left=1.5in,
+  % right=3.5in,
+  top=1.5in,
+  bottom=1.5in,
+  marginparwidth=1in,
+  marginparsep=0.3in
+}
+
+\newpage
+\fancyhfoffset[LE,RO]{0in}
+\section*{}
+\begingroup
+\parindent 0pt
+\parskip 6pt
+% More relaxed handling of urls in endnotes.
+% \sloppy
+% endnotes command for enotez.
+\printendnotes
+\endgroup
+\restoregeometry
+
+\newgeometry{
+  % a4paper,
+  % landscape,
+  left=1in,
+  right=1in,
+  % left=1.5in,
+  % right=3.5in,
+  top=1.5in,
+  bottom=1.5in,
+  marginparwidth=2in,
+  marginparsep=0.3in
+}
+
+\newpage
+\fancyhfoffset[LE,RO]{0in}
+\pagecolor{primarycolor}
+\color{white}
+
+    \begin{center}
+        \begin{minipage}[t]{1.0\textwidth}
+	\TshilaSerifFont
+        \includegraphics[width=6cm]{assets/main-logo-dark.png}\\[20pt]
+        {\fontsize{16}{18}\selectfont {
+            The Takshashila Institution is an independent centre for research and education
+            in public policy. It is a non-partisan, non-profit organisation that advocates the
+            values of freedom, openness, tolerance, pluralism, and responsible citizenship. It
+            seeks to transform India through better public policies, bridging the governance
+            gap by developing better public servants, civil society leaders, professionals, and
+            informed citizens.\\[10pt]
+            Takshashila creates change by connecting good people, to good ideas and good
+            networks. It produces independent policy research in a number of areas of
+            governance, it grooms civic leaders through its online education programmes
+            and engages in public discourse through its publications and digital media.
+        }
+        }\\[30pt]
+        {\fontsize{16}{18}\selectfont\textcopyright The Takshashila Institution, 2025}
+        \end{minipage}
+    \end{center}
+
+\restoregeometry
+
+\end{document}
