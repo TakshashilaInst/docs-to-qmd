@@ -173,6 +173,14 @@ def _para_to_inline_with_fn(para, get_fn_num) -> str:
 
 # ── Footnote extraction ────────────────────────────────────────────────────────
 
+_BARE_URL_RE = re.compile(r'(?<![(\[<"])(https?://[^\s<>"\)\]]+)')
+
+
+def _linkify_bare_urls(text: str) -> str:
+    """Wrap bare http(s) URLs that aren't already inside a Markdown link or angle bracket."""
+    return _BARE_URL_RE.sub(r'<\1>', text)
+
+
 def _fn_para_to_markdown(p_elem, rels: dict[str, str]) -> str:
     """
     Convert a footnote paragraph element to markdown text, preserving hyperlinks.
@@ -269,7 +277,7 @@ def _extract_footnotes_from_bytes(docx_bytes: bytes) -> dict[int, str]:
             para_text = _fn_para_to_markdown(p, fn_rels)
             if para_text:
                 text_parts.append(para_text)
-        footnotes[fn_id] = " ".join(text_parts)
+        footnotes[fn_id] = _linkify_bare_urls(" ".join(text_parts))
     return footnotes
 
 
@@ -318,7 +326,7 @@ def _extract_footnotes(doc: Document) -> dict[int, str]:
             para_text = _fn_para_to_markdown(p, fn_rels)
             if para_text:
                 text_parts.append(para_text)
-        footnotes[fn_id] = " ".join(text_parts)
+        footnotes[fn_id] = _linkify_bare_urls(" ".join(text_parts))
     return footnotes
 
 
@@ -603,11 +611,16 @@ def convert(
 
         line = inline.strip()
         if list_marker:
-            line = list_marker + line
-        raw_lines.append(line)
+            # List items stay together — no extra blank line between them
+            raw_lines.append(list_marker + line)
+        else:
+            # Normal paragraphs need a blank line after them so Markdown
+            # renders each as a separate paragraph rather than a single blob
+            raw_lines.append(line)
+            raw_lines.append("")
 
-    # 5. Process [aside] / [/aside] blocks
-    processed_lines = _process_asides(raw_lines)
+    # 5. Process [aside] / [/aside] blocks, then normalise blank lines
+    processed_lines = _normalize_blank_lines(_process_asides(raw_lines))
 
     # 6. Append footnote definitions
     footnote_defs: list[str] = []
@@ -627,6 +640,23 @@ def convert(
         parts.append(fn_block)
 
     return "\n".join(parts)
+
+
+# ── Blank-line normalisation ─────────────────────────────────────────────────
+
+def _normalize_blank_lines(lines: list[str]) -> list[str]:
+    """Collapse runs of 3+ consecutive blank lines down to a single blank line."""
+    result: list[str] = []
+    blank_run = 0
+    for line in lines:
+        if line == "":
+            blank_run += 1
+            if blank_run <= 1:
+                result.append(line)
+        else:
+            blank_run = 0
+            result.append(line)
+    return result
 
 
 # ── Aside processing ──────────────────────────────────────────────────────────
@@ -799,7 +829,11 @@ def convert_blog(
             continue
 
         inline = _para_to_inline_with_fn(para, get_fn_num)
-        raw_lines.append(inline if inline else "")
+        if inline:
+            raw_lines.append(inline)
+            raw_lines.append("")
+        else:
+            raw_lines.append("")
 
     # Footnote block
     fn_block_lines: list[str] = []
@@ -809,7 +843,7 @@ def convert_blog(
             fn_text = word_footnotes.get(word_id, "")
             fn_block_lines.append(f"[^{seq_num}]: {fn_text}")
 
-    processed = _process_asides(raw_lines)
+    processed = _normalize_blank_lines(_process_asides(raw_lines))
     body = "\n".join(processed).strip()
     fn_block = "\n".join(fn_block_lines)
 

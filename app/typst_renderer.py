@@ -160,6 +160,16 @@ def _convert_body(body: str) -> str:
         result.append(_convert_inline(line, footnotes))
         i += 1
 
+    # ── ENDNOTES section ──────────────────────────────────────────────────────
+    if footnotes:
+        result.append('')
+        result.append('= ENDNOTES')
+        result.append('')
+        for n in sorted(footnotes.keys(), key=lambda x: int(x)):
+            content = _convert_inline(footnotes[n], {})
+            result.append(f'#super[{n}] {content}')
+            result.append('')
+
     return '\n'.join(result)
 
 
@@ -177,13 +187,17 @@ def _convert_inline(text: str, footnotes: dict[str, str] | None = None) -> str:
     if footnotes is None:
         footnotes = {}
 
-    # Inline footnote markers → #footnote[...]
+    # Inline footnote markers → superscript numbers (endnotes collected at doc end)
     def replace_fn(m: re.Match) -> str:
-        n = m.group(1)
-        content = footnotes.get(n, '')
-        content = _convert_inline(content, {})  # avoid recursion on nested markers
-        return f'#footnote[{content}]'
+        return f'#super[{m.group(1)}]'
     text = re.sub(r'\[\^(\d+)\]', replace_fn, text)
+
+    # Autolinks: <https://...> → #link("url")[url]
+    text = re.sub(
+        r'<(https?://[^\s>]+)>',
+        lambda m: f'#link("{m.group(1)}")[{m.group(1)}]',
+        text,
+    )
 
     # Bold+italic: ***text***
     text = re.sub(r'\*\*\*(.+?)\*\*\*', r'*_\1_*', text)
@@ -222,7 +236,7 @@ def _escape_hashes(text: str) -> str:
     not followed by a known Typst function name.
     """
     # Match '#' that isn't already a Typst command we inserted
-    typst_fns = r'(?:link|footnote|figure|image|aside|v|h|text|set|show|let|par)'
+    typst_fns = r'(?:link|footnote|figure|image|aside|super|v|h|text|set|show|let|par)'
     return re.sub(
         r'#(?!' + typst_fns + r'[(\[])',
         r'\\#',
