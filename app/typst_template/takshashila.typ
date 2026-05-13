@@ -31,7 +31,7 @@
 #let _endnote_ctr = counter("_endnote_ctr")
 
 #let render_endnotes() = context {
-  let notes = _endnotes.final(here())
+  let notes = _endnotes.final()
   if notes.len() == 0 { return }
   v(2.5em, weak: true)
   block(width: 100%)[
