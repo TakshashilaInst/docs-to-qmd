@@ -197,8 +197,8 @@ _BARE_URL_RE = re.compile(r'(?<![(\[<"])(https?://[^\s<>"\)\]]+)')
 
 
 def _linkify_bare_urls(text: str) -> str:
-    """Wrap bare http(s) URLs that aren't already inside a Markdown link or angle bracket."""
-    return _BARE_URL_RE.sub(r'<\1>', text)
+    """Convert bare http(s) URLs to [Link](url) markdown links."""
+    return _BARE_URL_RE.sub(r'[Link](\1)', text)
 
 
 def _fn_para_to_markdown(p_elem, rels: dict[str, str]) -> str:
@@ -229,16 +229,11 @@ def _fn_para_to_markdown(p_elem, rels: dict[str, str]) -> str:
             r_id = child.get(qn("r:id"))
             url = rels.get(r_id, "") if r_id else ""
             link_text = _collect_runs(child).strip()
-            if url:
-                # Use the URL itself as display text when the link text is
-                # empty or a generic placeholder like "Link", "here", etc.
-                _generic = {"link", "here", "click here", "source", "url"}
-                display = (
-                    link_text
-                    if (link_text and link_text.lower().rstrip(".") not in _generic)
-                    else url
-                )
-                parts.append(f"[{display}]({url})")
+            if link_text and url:
+                parts.append(f"[{link_text}]({url})")
+            elif url:
+                # No visible text — use "Link" as display text
+                parts.append(f"[Link]({url})")
             elif link_text:
                 parts.append(link_text)
 
@@ -253,14 +248,10 @@ def _fn_para_to_markdown(p_elem, rels: dict[str, str]) -> str:
                     r_id = sub.get(qn("r:id"))
                     url = rels.get(r_id, "") if r_id else ""
                     link_text = _collect_runs(sub).strip()
-                    if url:
-                        _generic = {"link", "here", "click here", "source", "url"}
-                        display = (
-                            link_text
-                            if (link_text and link_text.lower().rstrip(".") not in _generic)
-                            else url
-                        )
-                        parts.append(f"[{display}]({url})")
+                    if link_text and url:
+                        parts.append(f"[{link_text}]({url})")
+                    elif url:
+                        parts.append(f"[Link]({url})")
                     elif link_text:
                         parts.append(link_text)
 
