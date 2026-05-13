@@ -181,8 +181,12 @@ def _para_to_inline_with_fn(para, get_fn_num) -> str:
                 for t in r_elem.findall(qn("w:t")):
                     if t.text:
                         link_text += t.text
-            if link_text:
-                parts.append(f"[{link_text}]({url})" if url else link_text)
+            if url:
+                # Use "Link" when text is empty or is itself a URL
+                display = link_text if (link_text and not link_text.startswith("http")) else "Link"
+                parts.append(f"[{display}]({url})")
+            elif link_text:
+                parts.append(link_text)
         elif tag == qn("w:ins"):
             # Tracked-change insertions — include their runs
             for r_elem in child.findall(qn("w:r")):
@@ -229,11 +233,11 @@ def _fn_para_to_markdown(p_elem, rels: dict[str, str]) -> str:
             r_id = child.get(qn("r:id"))
             url = rels.get(r_id, "") if r_id else ""
             link_text = _collect_runs(child).strip()
-            if link_text and url:
-                parts.append(f"[{link_text}]({url})")
-            elif url:
-                # No visible text — use "Link" as display text
-                parts.append(f"[Link]({url})")
+            if url:
+                # Use "Link" when text is empty or is itself a URL
+                # (Google Docs auto-hyperlinks typed URLs so text == href)
+                display = link_text if (link_text and not link_text.startswith("http")) else "Link"
+                parts.append(f"[{display}]({url})")
             elif link_text:
                 parts.append(link_text)
 
@@ -248,10 +252,9 @@ def _fn_para_to_markdown(p_elem, rels: dict[str, str]) -> str:
                     r_id = sub.get(qn("r:id"))
                     url = rels.get(r_id, "") if r_id else ""
                     link_text = _collect_runs(sub).strip()
-                    if link_text and url:
-                        parts.append(f"[{link_text}]({url})")
-                    elif url:
-                        parts.append(f"[Link]({url})")
+                    if url:
+                        display = link_text if (link_text and not link_text.startswith("http")) else "Link"
+                        parts.append(f"[{display}]({url})")
                     elif link_text:
                         parts.append(link_text)
 
