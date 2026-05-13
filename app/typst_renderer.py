@@ -167,8 +167,13 @@ def _convert_body(body: str) -> str:
         result.append('')
         for n in sorted(footnotes.keys(), key=lambda x: int(x)):
             content = _convert_inline(footnotes[n], {})
-            result.append(f'#super[{n}] {content}')
-            result.append('')
+            result.append('#block(above: 0pt, below: 0.55em)[')
+            result.append('  #set text(size: 8.5pt, font: "TeX Gyre Pagella")')
+            result.append('  #grid(columns: (1.6em, 1fr), column-gutter: 0.25em,')
+            result.append(f'    align(right + top)[#text(weight: "bold")[{n}.]],')
+            result.append(f'    [{content}],')
+            result.append('  )')
+            result.append(']')
 
     return '\n'.join(result)
 
@@ -187,9 +192,9 @@ def _convert_inline(text: str, footnotes: dict[str, str] | None = None) -> str:
     if footnotes is None:
         footnotes = {}
 
-    # Inline footnote markers → superscript numbers (endnotes collected at doc end)
+    # Inline footnote markers → branded superscript numbers
     def replace_fn(m: re.Match) -> str:
-        return f'#super[{m.group(1)}]'
+        return f'#super[#text(fill: primary, size: 7pt)[{m.group(1)}]]'
     text = re.sub(r'\[\^(\d+)\]', replace_fn, text)
 
     # Autolinks: <https://...> → #link("url")[url]
@@ -236,7 +241,7 @@ def _escape_hashes(text: str) -> str:
     not followed by a known Typst function name.
     """
     # Match '#' that isn't already a Typst command we inserted
-    typst_fns = r'(?:link|footnote|figure|image|aside|super|v|h|text|set|show|let|par)'
+    typst_fns = r'(?:link|footnote|figure|image|aside|super|v|h|text|set|show|let|par|block|grid|align|context|counter|state)'
     return re.sub(
         r'#(?!' + typst_fns + r'[(\[])',
         r'\\#',
