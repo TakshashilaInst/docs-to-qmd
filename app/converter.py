@@ -139,9 +139,29 @@ def _para_to_inline_with_fn(para, get_fn_num) -> str:
                 except ValueError:
                     pass
             return
-        # Regular run — wrap in a python-docx Run object to reuse _format_run
-        run = DocxRun(r_elem, para)
-        parts.append(_format_run(run, para))
+        # If run contains a line break (Shift+Enter in Google Docs), walk
+        # children directly so the break is preserved as a paragraph separator.
+        if r_elem.find(qn("w:br")) is not None:
+            run    = DocxRun(r_elem, para)
+            url    = _get_hyperlink_url(run, para)
+            bold   = run.bold
+            italic = run.italic
+            for child in r_elem:
+                if child.tag == qn("w:t"):
+                    t = child.text or ""
+                    if t:
+                        if bold and italic: t = f"***{t}***"
+                        elif bold:          t = f"**{t}**"
+                        elif italic:        t = f"*{t}*"
+                        if url:             t = f"[{t}]({url})"
+                        parts.append(t)
+                elif child.tag == qn("w:br"):
+                    if child.get(qn("w:type"), "") != "page":
+                        parts.append("\n")
+        else:
+            # Regular run — wrap in a python-docx Run object to reuse _format_run
+            run = DocxRun(r_elem, para)
+            parts.append(_format_run(run, para))
 
     for child in para._p:
         tag = child.tag
@@ -208,9 +228,17 @@ def _fn_para_to_markdown(p_elem, rels: dict[str, str]) -> str:
         elif tag == qn("w:hyperlink"):
             r_id = child.get(qn("r:id"))
             url = rels.get(r_id, "") if r_id else ""
-            link_text = _collect_runs(child)
-            if link_text and url:
-                parts.append(f"[{link_text}]({url})")
+            link_text = _collect_runs(child).strip()
+            if url:
+                # Use the URL itself as display text when the link text is
+                # empty or a generic placeholder like "Link", "here", etc.
+                _generic = {"link", "here", "click here", "source", "url"}
+                display = (
+                    link_text
+                    if (link_text and link_text.lower().rstrip(".") not in _generic)
+                    else url
+                )
+                parts.append(f"[{display}]({url})")
             elif link_text:
                 parts.append(link_text)
 
@@ -224,9 +252,15 @@ def _fn_para_to_markdown(p_elem, rels: dict[str, str]) -> str:
                 elif sub.tag == qn("w:hyperlink"):
                     r_id = sub.get(qn("r:id"))
                     url = rels.get(r_id, "") if r_id else ""
-                    link_text = _collect_runs(sub)
-                    if link_text and url:
-                        parts.append(f"[{link_text}]({url})")
+                    link_text = _collect_runs(sub).strip()
+                    if url:
+                        _generic = {"link", "here", "click here", "source", "url"}
+                        display = (
+                            link_text
+                            if (link_text and link_text.lower().rstrip(".") not in _generic)
+                            else url
+                        )
+                        parts.append(f"[{display}]({url})")
                     elif link_text:
                         parts.append(link_text)
 
@@ -609,15 +643,18 @@ def convert(
         # ── Build inline markdown with footnote markers in correct positions ──
         inline = _para_to_inline_with_fn(para, get_fn_num)
 
-        line = inline.strip()
-        if list_marker:
-            # List items stay together — no extra blank line between them
-            raw_lines.append(list_marker + line)
-        else:
-            # Normal paragraphs need a blank line after them so Markdown
-            # renders each as a separate paragraph rather than a single blob
-            raw_lines.append(line)
+        # Split on \n emitted by soft line-breaks (Shift+Enter in Google Docs)
+        # so each visual line becomes its own markdown paragraph.
+        segments = [s.strip() for s in inline.split("\n") if s.strip()]
+        if not segments:
             raw_lines.append("")
+        elif list_marker:
+            for s in segments:
+                raw_lines.append(list_marker + s)
+        else:
+            for s in segments:
+                raw_lines.append(s)
+                raw_lines.append("")
 
     # 5. Process [aside] / [/aside] blocks, then normalise blank lines
     processed_lines = _normalize_blank_lines(_process_asides(raw_lines))
@@ -829,11 +866,13 @@ def convert_blog(
             continue
 
         inline = _para_to_inline_with_fn(para, get_fn_num)
-        if inline:
-            raw_lines.append(inline)
+        segments = [s.strip() for s in inline.split("\n") if s.strip()]
+        if not segments:
             raw_lines.append("")
         else:
-            raw_lines.append("")
+            for s in segments:
+                raw_lines.append(s)
+                raw_lines.append("")
 
     # Footnote block
     fn_block_lines: list[str] = []

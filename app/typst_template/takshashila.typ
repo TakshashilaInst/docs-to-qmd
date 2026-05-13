@@ -21,6 +21,38 @@
   #body
 ]
 
+// ── Endnotes ────────────────────────────────────────────────────────────────
+// Quarto converts [^N] / [^N]: text  →  #footnote[text] in Typst.
+// We intercept every #footnote call: suppress the page-bottom rendering,
+// collect the body in state, and emit a superscript reference number instead.
+// render_endnotes() is called at the end of the body to print the full list.
+
+#let _endnotes    = state("_endnotes",    ())
+#let _endnote_ctr = counter("_endnote_ctr")
+
+#let render_endnotes() = context {
+  let notes = _endnotes.final(here())
+  if notes.len() == 0 { return }
+  v(2.5em, weak: true)
+  block(width: 100%)[
+    #text(size: 12pt, weight: "bold", fill: primary)[ENDNOTES]
+    #v(0.35em)
+    #line(length: 100%, stroke: 0.5pt + primary)
+    #v(0.6em)
+    #for (i, note) in notes.enumerate() {
+      block(above: 0pt, below: 0.55em)[
+        #set text(size: 8.5pt, font: "TeX Gyre Pagella")
+        #grid(
+          columns: (1.6em, 1fr),
+          column-gutter: 0.25em,
+          align(right + top)[#text(weight: "bold")[#(i + 1).]],
+          note,
+        )
+      ]
+    }
+  ]
+}
+
 // ── Main template function ──────────────────────────────────────────────────
 // Usage:
 //   #show: takshashila-doc.with(title: [...], authors: ("A", "B"), ...)
@@ -173,7 +205,19 @@
   // Links in blue
   show link: it => text(fill: rgb(0, 70, 180), it)
 
+  // Intercept footnotes → collect as endnotes, emit superscript ref instead
+  show footnote: it => {
+    _endnote_ctr.step()
+    _endnotes.update(l => l + (it.body,))
+    context {
+      set text(fill: primary, size: 7pt)
+      super[#_endnote_ctr.display()]
+    }
+  }
+
   body
+
+  render_endnotes()
 
 
   // ── Back page ───────────────────────────────────────────────────────────
