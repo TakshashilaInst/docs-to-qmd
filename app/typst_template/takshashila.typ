@@ -4,6 +4,25 @@
 
 #let primary = rgb(97, 13, 61)
 
+// ── Margin note (short aside ≤ 55 words) ────────────────────────────────────
+// Placed in the 76.2 mm right margin without breaking body-text flow.
+// dx = 64 mm puts the 60 mm box 4 mm to the right of the text column edge.
+#let margin_note(body) = place(
+  top + right,
+  dx: 64mm,
+  block(
+    width: 60mm,
+    fill: rgb(249, 238, 245),
+    stroke: (left: 2.5pt + primary),
+    inset: (left: 8pt, right: 6pt, top: 5pt, bottom: 5pt),
+    radius: (right: 3pt),
+  )[
+    #set text(fill: primary, size: 8pt, font: "TeX Gyre Pagella")
+    #set par(spacing: 0.5em, leading: 0.55em, justify: false)
+    #body
+  ]
+)
+
 // ── Aside / sidenote ────────────────────────────────────────────────────────
 // Rendered as an inline callout block so it NEVER overlaps body text.
 // A thin left border and tinted background make it visually distinct.
@@ -164,7 +183,16 @@
   set text(fill: black, font: "Inter", size: 10pt)
   // leading = line spacing within a paragraph; spacing = gap between paragraphs.
   // These values match typical Google Docs 1.15 line spacing + space-after-para.
-  set par(spacing: 1.1em, leading: 0.75em, first-line-indent: 0pt)
+  set par(spacing: 1.1em, leading: 0.75em, first-line-indent: 0pt, justify: true)
+
+  // ── Table styling ──────────────────────────────────────────────────────
+  set table(
+    stroke: 0.5pt + luma(180),
+    fill: (_, y) => if y == 0 { rgb(240, 230, 237) } else { white },
+    inset: (x: 6pt, y: 5pt),
+  )
+  show table.cell.where(y: 0): set text(weight: "bold", fill: primary)
+  show table: set text(size: 9pt, font: "TeX Gyre Pagella")
 
   // ── Image / figure rules ───────────────────────────────────────────────
   // Global backstop: fit "contain" ensures aspect ratio is ALWAYS preserved —

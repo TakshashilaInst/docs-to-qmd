@@ -24,6 +24,8 @@ from lxml import etree
 
 from docx import Document
 from docx.oxml.ns import qn
+from docx.table import Table as DocxTable
+from docx.text.paragraph import Paragraph as DocxParagraph
 from docx.text.run import Run as DocxRun
 
 
@@ -127,6 +129,17 @@ def _para_to_inline_with_fn(para, get_fn_num) -> str:
     parts = []
 
     def _handle_run_elem(r_elem):
+        # Skip runs with a "Hyperlink" character style — Google Docs emits these
+        # as a plain-run duplicate immediately after the <w:hyperlink> element,
+        # which would otherwise produce the same URL text twice.
+        rPr = r_elem.find(qn("w:rPr"))
+        if rPr is not None:
+            rStyle = rPr.find(qn("w:rStyle"))
+            if rStyle is not None:
+                val = (rStyle.get(qn("w:val")) or "").lower()
+                if "hyperlink" in val:
+                    return
+
         # Footnote reference run — no visible text, just a marker
         fn_ref = r_elem.find(qn("w:footnoteReference"))
         if fn_ref is not None:
@@ -225,6 +238,15 @@ def _fn_para_to_markdown(p_elem, rels: dict[str, str]) -> str:
         tag = child.tag
 
         if tag == qn("w:r"):
+            # Skip runs with Hyperlink character style — Google Docs adds these
+            # as a plain duplicate immediately after the <w:hyperlink> element.
+            rPr = child.find(qn("w:rPr"))
+            if rPr is not None:
+                rStyle = rPr.find(qn("w:rStyle"))
+                if rStyle is not None:
+                    val = (rStyle.get(qn("w:val")) or "").lower()
+                    if "hyperlink" in val:
+                        continue
             for t in child.findall(qn("w:t")):
                 if t.text:
                     parts.append(t.text)
@@ -376,18 +398,19 @@ class ImageRef:
     index: int
     filename: str       # e.g. "gagechina_1.png"
     blob: bytes
-    para_index: int     # paragraph index where the image appears
+    para_elem_id: int   # id() of the paragraph _p element
 
 
 def _extract_images(doc: Document, img_prefix: str = "img") -> list[ImageRef]:
     """
     Walk all paragraphs and extract embedded images.
     Returns list of ImageRef in document order.
+    Keyed by id(para._p) so lookups work regardless of paragraph enumeration order.
     """
     images: list[ImageRef] = []
     img_counter = 0
 
-    for para_idx, para in enumerate(doc.paragraphs):
+    for para in doc.paragraphs:
         drawings = para._p.findall(".//" + qn("w:drawing"))
         for drawing in drawings:
             blip = drawing.find(".//" + qn("a:blip"))
@@ -410,7 +433,7 @@ def _extract_images(doc: Document, img_prefix: str = "img") -> list[ImageRef]:
                     index=img_counter,
                     filename=filename,
                     blob=rel.target_part.blob,
-                    para_index=para_idx,
+                    para_elem_id=id(para._p),
                 )
             )
     return images
@@ -463,6 +486,9 @@ def _is_passthrough(text: str) -> bool:
 def _get_list_marker(para) -> Optional[str]:
     """Return '- ' for bullet lists or '1. ' for numbered lists, else None."""
     style_name = para.style.name if para.style else ""
+    # Never treat a heading style as a list (some heading styles carry numbering)
+    if "heading" in style_name.lower():
+        return None
     if "List Bullet" in style_name:
         return "- "
     if "List Number" in style_name:
@@ -494,6 +520,10 @@ def _is_implicit_heading(para) -> bool:
 
     text = para.text.strip()
     if not text:
+        return False
+
+    # Don't misidentify figure/table/box captions as section headings
+    if re.match(r'^(figure|fig\.?|table|tbl\.?|box|chart)\s*[\d:]', text, re.IGNORECASE):
         return False
 
     # Must be short
@@ -543,10 +573,10 @@ def convert(
         dest = images_dir / img.filename
         dest.write_bytes(img.blob)
 
-    # Build a mapping: para_index → list of ImageRef
+    # Build a mapping: id(para._p) → list of ImageRef
     para_to_images: dict[int, list[ImageRef]] = {}
     for img in image_refs:
-        para_to_images.setdefault(img.para_index, []).append(img)
+        para_to_images.setdefault(img.para_elem_id, []).append(img)
 
     # 2. Footnote counter — shared state accessed via closure
     fn_map: dict[int, int] = {}   # word_fn_id → sequential [^N] number
@@ -564,14 +594,41 @@ def convert(
     skip_exact.update(authors_list)
     skip_exact.discard("")
 
-    # 4. Convert paragraphs
+    # 4. Convert body items (paragraphs and tables) in document order
     raw_lines: list[str] = []
     seen_heading = False
+    body_items = list(_iter_body_items(doc))
+    item_count = len(body_items)
+    item_idx = 0
 
-    for para_idx, para in enumerate(doc.paragraphs):
+    while item_idx < item_count:
+        item_type, item = body_items[item_idx]
+        item_idx += 1
 
-        # ── Emit images attached to this paragraph ──────────────────────────
-        for img in para_to_images.get(para_idx, []):
+        # ── Table ────────────────────────────────────────────────────────────
+        if item_type == "table":
+            caption = None
+            # A paragraph immediately following the table starting with
+            # "Table N" / "Table N:" is treated as its caption.
+            if item_idx < item_count:
+                next_type, next_item = body_items[item_idx]
+                if next_type == "para":
+                    next_text = next_item.text.strip()
+                    if re.match(r'^(table|tbl\.?)\s*[\d:]', next_text, re.IGNORECASE):
+                        caption = next_text
+                        item_idx += 1  # consume the caption paragraph
+            table_lines = _table_to_qmd(item, caption)
+            if table_lines:
+                raw_lines.append("")
+                raw_lines.extend(table_lines)
+                raw_lines.append("")
+            continue
+
+        # ── Paragraph ────────────────────────────────────────────────────────
+        para = item
+
+        # Emit images attached to this paragraph
+        for img in para_to_images.get(id(para._p), []):
             raw_lines.append("")
             raw_lines.append(f"![](images/{img.filename}){{width=100%}}")
             raw_lines.append("")
@@ -748,6 +805,66 @@ def _process_asides(lines: list[str]) -> list[str]:
     return result
 
 
+# ── Body-item iterator ────────────────────────────────────────────────────────
+
+def _iter_body_items(doc: Document):
+    """
+    Yield ('para', Paragraph) or ('table', Table) for each body-level element
+    in document order, skipping all other XML nodes.
+    """
+    for child in doc.element.body:
+        if child.tag == qn("w:p"):
+            yield "para", DocxParagraph(child, doc)
+        elif child.tag == qn("w:tbl"):
+            yield "table", DocxTable(child, doc)
+
+
+def _table_to_qmd(table, caption: Optional[str] = None) -> list[str]:
+    """
+    Convert a python-docx Table to GFM markdown table lines.
+    Merged cells are de-duplicated so content doesn't repeat.
+    Returns the table lines, optionally followed by a blank line and
+    ': caption text' for use as a Quarto/pandoc table caption.
+    """
+    rows = table.rows
+    if not rows:
+        return []
+
+    cell_texts: list[list[str]] = []
+    for row in rows:
+        seen_cells: set[int] = set()
+        row_texts: list[str] = []
+        for cell in row.cells:
+            cell_id = id(cell._tc)
+            if cell_id in seen_cells:
+                continue
+            seen_cells.add(cell_id)
+            text = " ".join(p.text.strip() for p in cell.paragraphs if p.text.strip())
+            text = text.replace("|", "\\|")
+            row_texts.append(text)
+        cell_texts.append(row_texts)
+
+    col_count = max((len(r) for r in cell_texts), default=0)
+    if col_count == 0:
+        return []
+
+    for row in cell_texts:
+        while len(row) < col_count:
+            row.append("")
+
+    lines: list[str] = []
+    lines.append("| " + " | ".join(cell_texts[0]) + " |")
+    lines.append("|" + "|".join(["---"] * col_count) + "|")
+    for row in cell_texts[1:]:
+        lines.append("| " + " | ".join(row) + " |")
+
+    if caption:
+        lines.append("")
+        lines.append(f": {caption}")
+
+    return lines
+
+
 # ── Blog conversion ───────────────────────────────────────────────────────────
 
 def build_blog_frontmatter(meta: dict, slug: str) -> str:
@@ -794,7 +911,7 @@ def convert_blog(
 
     para_to_images: dict[int, list[ImageRef]] = {}
     for img in image_refs:
-        para_to_images.setdefault(img.para_index, []).append(img)
+        para_to_images.setdefault(img.para_elem_id, []).append(img)
 
     fn_map: dict[int, int] = {}
     fn_counter = [0]
@@ -812,9 +929,35 @@ def convert_blog(
 
     raw_lines: list[str] = []
     seen_heading = False
+    body_items = list(_iter_body_items(doc))
+    item_count = len(body_items)
+    item_idx = 0
 
-    for para_idx, para in enumerate(doc.paragraphs):
-        for img in para_to_images.get(para_idx, []):
+    while item_idx < item_count:
+        item_type, item = body_items[item_idx]
+        item_idx += 1
+
+        # ── Table ────────────────────────────────────────────────────────────
+        if item_type == "table":
+            caption = None
+            if item_idx < item_count:
+                next_type, next_item = body_items[item_idx]
+                if next_type == "para":
+                    next_text = next_item.text.strip()
+                    if re.match(r'^(table|tbl\.?)\s*[\d:]', next_text, re.IGNORECASE):
+                        caption = next_text
+                        item_idx += 1
+            table_lines = _table_to_qmd(item, caption)
+            if table_lines:
+                raw_lines.append("")
+                raw_lines.extend(table_lines)
+                raw_lines.append("")
+            continue
+
+        # ── Paragraph ────────────────────────────────────────────────────────
+        para = item
+
+        for img in para_to_images.get(id(para._p), []):
             raw_lines.append("")
             raw_lines.append(f"![](images/{img.filename}){{width=100%}}")
             raw_lines.append("")

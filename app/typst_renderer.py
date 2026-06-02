@@ -95,7 +95,11 @@ def _convert_body(body: str) -> str:
             aside_body = '\n'.join(
                 _convert_inline(l, footnotes) for l in aside_lines if l.strip()
             )
-            result.append(f'#aside[{aside_body}]')
+            word_count = len(' '.join(aside_lines).split())
+            if word_count <= 55:
+                result.append(f'#margin_note[{aside_body}]')
+            else:
+                result.append(f'#aside[{aside_body}]')
             i += 1
             continue
         if in_aside:
@@ -106,6 +110,20 @@ def _convert_body(body: str) -> str:
         # Skip other remaining ::: fence lines
         if re.match(r'^:::', line):
             i += 1
+            continue
+
+        # ── Markdown table ────────────────────────────────────────────────────
+        if line.startswith('|') and i + 1 < len(lines) and re.match(r'^\|[\s\-|:]+\|', lines[i + 1]):
+            table_lines = []
+            while i < len(lines) and lines[i].startswith('|'):
+                table_lines.append(lines[i])
+                i += 1
+            # Check for ": Caption text" immediately after the table
+            caption = None
+            if i < len(lines) and lines[i].startswith(': '):
+                caption = lines[i][2:].strip()
+                i += 1
+            result.extend(_md_table_to_typst(table_lines, caption, footnotes))
             continue
 
         # ── Headings ──────────────────────────────────────────────────────────
@@ -247,6 +265,63 @@ def _escape_hashes(text: str) -> str:
         r'\\#',
         text,
     )
+
+
+# ── Markdown table → Typst ────────────────────────────────────────────────────
+
+def _md_table_to_typst(
+    table_lines: list[str],
+    caption: str | None,
+    footnotes: dict[str, str],
+) -> list[str]:
+    """
+    Convert GFM markdown table lines (including the separator row) to a
+    Typst #figure(table(...)) block styled by the takshashila template.
+    """
+    rows: list[list[str]] = []
+    for line in table_lines:
+        stripped = line.strip()
+        # Skip the separator row (|---|:---|---:|)
+        if re.match(r'^\|[\s\-|:]+\|$', stripped):
+            continue
+        cells = [c.strip() for c in stripped.strip('|').split('|')]
+        rows.append(cells)
+
+    if not rows:
+        return []
+
+    col_count = max(len(r) for r in rows)
+    for row in rows:
+        while len(row) < col_count:
+            row.append('')
+
+    result: list[str] = []
+    result.append('')
+    result.append('#figure(')
+    result.append(f'  table(')
+    result.append(f'    columns: {col_count},')
+
+    # First row → table header
+    header_cells = ', '.join(
+        f'[{_convert_inline(c, footnotes)}]' for c in rows[0]
+    )
+    result.append(f'    table.header({header_cells}),')
+
+    # Remaining rows → data cells (one row per line for readability)
+    for row in rows[1:]:
+        row_cells = ', '.join(
+            f'[{_convert_inline(c, footnotes)}]' for c in row
+        )
+        result.append(f'    {row_cells},')
+
+    result.append('  ),')
+    if caption:
+        result.append(f'  caption: [{_escape(caption)}],')
+    result.append('  kind: table,')
+    result.append(')')
+    result.append('')
+
+    return result
 
 
 # ── .typ file assembly ─────────────────────────────────────────────────────────
