@@ -238,7 +238,8 @@ def _convert_inline(text: str, footnotes: dict[str, str] | None = None) -> str:
         # Escape $ in link text so Typst doesn't treat it as math mode
         link_text = link_text.replace('$', r'\$')
         return f'#link("{url}")[{link_text}]'
-    text = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', replace_link, text)
+    # URL pattern allows one level of balanced parens inside, e.g. EPRS_ATA(2023)report.pdf
+    text = re.sub(r'\[([^\]]+)\]\(([^()]*(?:\([^()]*\)[^()]*)*)\)', replace_link, text)
 
     # Escape stray # characters not part of a Typst command we just inserted
     # Strategy: split on existing #... sequences, escape only plain-text segments
