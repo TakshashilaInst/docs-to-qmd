@@ -77,6 +77,7 @@
 //   #show: takshashila-doc.with(title: [...], authors: ("A", "B"), ...)
 #let takshashila-doc(
   title: [],
+  header_title: "",   // auto-shortened title for running header
   subtitle: [],
   authors: (),
   date: "",
@@ -160,10 +161,12 @@
     numbering: "1",
     header: {
       set text(fill: primary, font: "TeX Gyre Pagella", size: 9pt, weight: "bold")
+      // Use header_title (auto-shortened) so long titles never overflow the header.
+      let _ht = if header_title != "" { header_title } else { title }
       grid(
         columns: (1fr, 1fr),
         align(left)[#doctype],
-        align(right)[#title],
+        align(right)[#_ht],
       )
       v(-4pt)
       line(length: 100%, stroke: 0.5pt + primary)

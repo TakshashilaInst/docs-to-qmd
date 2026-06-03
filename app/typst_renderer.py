@@ -224,8 +224,9 @@ def _convert_inline(text: str, footnotes: dict[str, str] | None = None) -> str:
 
     # Bold+italic: ***text***
     text = re.sub(r'\*\*\*(.+?)\*\*\*', r'*_\1_*', text)
-    # Bold: **text**
+    # Bold: **text** or __text__ (both markdown bold variants)
     text = re.sub(r'\*\*(.+?)\*\*', r'*\1*', text)
+    text = re.sub(r'__(.+?)__', r'*\1*', text)
     # Italic: *text* (not inside ** — already consumed above)
     text = re.sub(r'(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)', r'_\1_', text)
 
@@ -246,8 +247,13 @@ def _convert_inline(text: str, footnotes: dict[str, str] | None = None) -> str:
     text = _escape_hashes(text)
 
     # Escape bare $ in plain text (math mode trigger in Typst).
-    # The (?<!\\) lookbehind skips already-escaped \$ from link text above.
-    text = re.sub(r'(?<!\\)\$', r'\\$', text)
+    # Use a two-step approach: first mark already-escaped \$ as a placeholder,
+    # escape all remaining $, then restore — avoids false-positive lookbehind
+    # issues when \# (escaped hash) immediately precedes a $.
+    _DOLLAR_PLACEHOLDER = '\x00DOLLAR\x00'
+    text = text.replace(r'\$', _DOLLAR_PLACEHOLDER)
+    text = text.replace('$', r'\$')
+    text = text.replace(_DOLLAR_PLACEHOLDER, r'\$')
 
     return text
 
@@ -337,6 +343,21 @@ def _c(s: str) -> str:
     return '[' + _escape(str(s)) + ']'
 
 
+def _short_title(title: str, max_chars: int = 48) -> str:
+    """
+    Return a header-safe version of title.
+    If it's already short enough, return as-is.
+    Otherwise truncate at the last word boundary before max_chars and add '…'.
+    """
+    if len(title) <= max_chars:
+        return title
+    cut = title[:max_chars]
+    last_space = cut.rfind(' ')
+    if last_space > max_chars // 2:
+        return cut[:last_space] + '…'
+    return cut + '…'
+
+
 def _build_typ_file(meta: dict, typst_body: str) -> str:
     title = meta.get('title', '') or ''
     subtitle = meta.get('subtitle', '') or ''
@@ -361,11 +382,15 @@ def _build_typ_file(meta: dict, typst_body: str) -> str:
     # Typst needs trailing comma for single-element arrays
     authors_typst += (',' if len(authors) == 1 else '') + ')'
 
+    # Auto-shortened title for the running header (never wraps or overflows)
+    header_title = _short_title(title)
+
     lines = [
         '#import "takshashila.typ": *',
         '',
         '#show: takshashila-doc.with(',
         f'  title: {_c(title)},',
+        f'  header_title: {_q(header_title)},',
         f'  subtitle: {_c(subtitle)},',
         f'  authors: {authors_typst},',
         f'  date: {_q(date)},',
