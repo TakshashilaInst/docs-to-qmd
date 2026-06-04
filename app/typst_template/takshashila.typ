@@ -162,7 +162,7 @@
     header: {
       set text(fill: primary, font: "TeX Gyre Pagella", size: 9pt, weight: "bold")
       // Use header_title (auto-shortened) so long titles never overflow the header.
-      let _ht = if header_title != "" { header_title } else { title }
+      let _ht = if header_title != "" { [#header_title] } else { title }
       grid(
         columns: (1fr, 1fr),
         align(left)[#doctype],
