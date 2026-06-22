@@ -221,14 +221,22 @@ def _convert_inline(text: str, footnotes: dict[str, str] | None = None) -> str:
         lambda m: f'#link("{m.group(1)}")[{m.group(1)}]',
         text,
     )
+    # Escape bare < (Typst treats <word as label opener, e.g. <25% → unclosed label)
+    text = text.replace('<', r'\<')
 
-    # Bold+italic: ***text***
-    text = re.sub(r'\*\*\*(.+?)\*\*\*', r'*_\1_*', text)
+    # Bold+italic: ***text*** — use placeholders so stray * can be escaped below
+    _BO = '\x00BO\x00'
+    _BC = '\x00BC\x00'
+    text = re.sub(r'\*\*\*(.+?)\*\*\*', lambda m: f'{_BO}_' + m.group(1) + f'_{_BC}', text)
     # Bold: **text** or __text__ (both markdown bold variants)
-    text = re.sub(r'\*\*(.+?)\*\*', r'*\1*', text)
-    text = re.sub(r'__(.+?)__', r'*\1*', text)
+    text = re.sub(r'\*\*(.+?)\*\*', lambda m: f'{_BO}' + m.group(1) + f'{_BC}', text)
+    text = re.sub(r'__(.+?)__', lambda m: f'{_BO}' + m.group(1) + f'{_BC}', text)
     # Italic: *text* (not inside ** — already consumed above)
     text = re.sub(r'(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)', r'_\1_', text)
+    # Escape stray * that weren't consumed as formatting (e.g. lone asterisk footnote markers)
+    text = text.replace('*', r'\*')
+    # Restore bold markers
+    text = text.replace(_BO, '*').replace(_BC, '*')
 
     # Hyperlinks: [text](url)
     def replace_link(m: re.Match) -> str:
