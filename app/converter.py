@@ -34,13 +34,32 @@ from docx.text.run import Run as DocxRun
 # ── YAML / filename helpers ───────────────────────────────────────────────────
 
 ALLOWED_CATEGORIES = [
-    "Geostrategy",
-    "High-Tech Geopolitics",
-    "Advanced Biology",
-    "Geospatial Research",
-    "Advanced Military Technologies & Outer Space",
-    "Strategic Studies",
-    "Economic Policy",
+    # General (cross-cutting modifiers)
+    "Governance", "Regulation", "Survey", "Discussion", "Supply chain",
+    "National Interest", "Strategic Autonomy",
+    # HTG — High-Tech Geopolitics
+    "HTG", "AI", "Quantum", "Space", "Energy", "Semiconductors",
+    "Geopolitics", "Emerging Technologies", "Rare Earths",
+    "Internet Governance", "Information Warfare",
+    # Advanced Biology
+    "Advanced Biology", "Synthetic Biology", "Genomics", "Public Health",
+    "Biosecurity", "Bioeconomy",
+    # Geostrategy
+    "Geostrategy", "China", "Pakistan", "Diplomacy", "Partnerships", "PLA",
+    "Maritime Security", "Indo-Pacific", "Japan",
+    # Advanced Military Technologies
+    "Advanced Military Technologies", "Defence Innovation",
+    "Autonomous Weapons Systems", "Cybersecurity", "Military R&D", "Defence",
+    # Strategic Studies
+    "Strategic Studies", "National Security Strategy",
+    "Conflict And Deterrence", "Security Architecture", "Nuclear",
+    # Geospatial
+    "Geospatial", "Geospatial Infrastructure", "Mapping And Intelligence",
+    "Remote Sensing Applications", "Data for Policy",
+    # Economic Policy
+    "Economic Policy", "Macroeconomic Policy", "Jobs",
+    "Trade and Industrial Policy", "Public Finance", "Digital Economy",
+    "Geoeconomics", "Economic Freedom", "Economic Reasoning",
 ]
 
 
