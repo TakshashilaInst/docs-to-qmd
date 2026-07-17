@@ -24,26 +24,76 @@
     dateInput.value = new Date().toISOString().slice(0, 10);
   }
 
+  // ── Auto-generate filename from title + date ───────────────────────────────
+  const titleInput    = document.getElementById("title");
+  const fnInput       = document.getElementById("pdf_filename");
+  let fnUserEdited    = false;
+
+  function makeFilename(title, date) {
+    const datePart = (date || "").replace(/-/g, "") ||
+      new Date().toISOString().slice(0, 10).replace(/-/g, "");
+    let slug = title.toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
+    if (slug.length > 45) {
+      slug = slug.slice(0, 45).replace(/-[^-]*$/, "");
+    }
+    return `${datePart}-${slug || "document"}`;
+  }
+
+  function updateFilename() {
+    if (fnUserEdited) return;
+    const title = titleInput.value.trim();
+    const date  = dateInput.value.trim();
+    if (title) {
+      fnInput.value = makeFilename(title, date);
+    }
+  }
+
+  titleInput.addEventListener("input", updateFilename);
+  dateInput.addEventListener("change", updateFilename);
+  fnInput.addEventListener("input", () => { fnUserEdited = fnInput.value !== ""; });
+
+  // Trigger once on load if title is pre-filled
+  updateFilename();
+
+  // ── Collect category checkboxes into hidden field ──────────────────────────
+  function syncCategories() {
+    const checked = [...document.querySelectorAll('input[name="categories_cb"]:checked')]
+      .map(cb => cb.value);
+    document.getElementById("categories").value = checked.join(", ");
+  }
+  document.querySelectorAll('input[name="categories_cb"]').forEach(cb => {
+    cb.addEventListener("change", syncCategories);
+  });
+
   // ── Form submit ────────────────────────────────────────────────────────────
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
 
+    syncCategories();
     setLoading(true);
     hideResults();
 
     const formData = new FormData(form);
     // Checkbox: if unchecked, FormData won't include it — add explicit bool
     formData.set("render_pdf", document.getElementById("render_pdf").checked ? "true" : "false");
+    // Remove the checkbox group; the hidden field already has the value
+    formData.delete("categories_cb");
 
-    let zipBlob, zipWarning;
+    let zipBlob, zipWarning, zipFilename;
     try {
       const resp = await fetch("/api/convert", {
         method: "POST",
         body: formData,
       });
 
-      zipWarning = resp.headers.get("X-Typst-Warning");
+      zipWarning  = resp.headers.get("X-Typst-Warning");
+      zipFilename = resp.headers.get("X-Filename") || fnInput.value.trim() || "output";
 
       if (!resp.ok) {
         let detail = `Server error (${resp.status})`;
@@ -62,13 +112,13 @@
     }
 
     setLoading(false);
-    showSuccess(zipBlob, zipWarning);
+    showSuccess(zipBlob, zipWarning, zipFilename);
   });
 
   // ── Validation ─────────────────────────────────────────────────────────────
   function validateForm() {
     let ok = true;
-    ["google_doc_url", "title", "authors", "date", "pdf_filename"].forEach((id) => {
+    ["google_doc_url", "title", "authors", "date"].forEach((id) => {
       const el = document.getElementById(id);
       if (!el.value.trim()) {
         el.classList.add("error");
@@ -113,18 +163,12 @@
     errorCard.hidden = true;
   }
 
-  function showSuccess(zipBlob, warning) {
-    const stem = document.getElementById("pdf_filename").value.trim();
+  function showSuccess(zipBlob, warning, stem) {
     const zipUrl = URL.createObjectURL(zipBlob);
 
-    // ZIP
     dlZip.href = zipUrl;
     dlZip.download = `${stem}.zip`;
 
-    // We need to unzip in-browser to offer separate QMD/PDF links.
-    // For simplicity, point all three at the zip with descriptive names,
-    // and note the user can open the zip. A future enhancement could
-    // use fflate to unzip in-browser.
     dlQmd.href = zipUrl;
     dlQmd.download = `${stem}.zip`;
     dlQmd.textContent = "Download .zip (QMD + images)";

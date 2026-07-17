@@ -202,6 +202,44 @@ textarea { resize: vertical; }
   cursor: pointer;
 }
 
+/* ── Category chip grid ───────────────────────────────────────────────────── */
+.cat-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .45rem;
+  margin-top: .35rem;
+}
+.cat-chip {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .3rem .65rem;
+  border: 1.5px solid #d4c4d0;
+  border-radius: 999px;
+  font-size: .83rem;
+  font-weight: normal;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color .15s, background .15s;
+}
+.cat-chip:hover {
+  border-color: var(--brand);
+  background: #fdf4fa;
+}
+.cat-chip input[type="checkbox"] {
+  width: .85rem;
+  height: .85rem;
+  accent-color: var(--brand);
+  cursor: pointer;
+  margin: 0;
+}
+.cat-chip:has(input:checked) {
+  border-color: var(--brand);
+  background: #f5e6f0;
+  color: var(--brand);
+  font-weight: 500;
+}
+
 /* ── Aside guide card ─────────────────────────────────────────────────────── */
 .aside-guide {
   background: #fafaf8;

@@ -18,7 +18,7 @@ from docx import Document
 import tempfile
 
 from gdocs import fetch_docx
-from converter import convert, convert_blog
+from converter import convert, convert_blog, make_filename
 from renderer import render_and_zip, zip_blog, TypstNotFoundError, RenderError
 
 STATIC_DIR = Path(__file__).parent.parent / "static"
@@ -31,7 +31,7 @@ app.add_middleware(
     allow_origins=["*"],
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
-    expose_headers=["Content-Disposition"],
+    expose_headers=["Content-Disposition", "X-Filename"],
 )
 
 
@@ -105,7 +105,7 @@ async def api_convert(
 
     # ── 4. Paper mode: Convert DOCX → QMD ─────────────────────────────────
     if not pdf_filename:
-        raise HTTPException(status_code=400, detail="pdf_filename is required for paper mode.")
+        pdf_filename = make_filename(title, date)
 
     with tempfile.TemporaryDirectory() as img_tmp:
         images_dir = Path(img_tmp) / "images"
@@ -148,6 +148,7 @@ async def api_convert(
                 media_type="application/zip",
                 headers={
                     "Content-Disposition": f'attachment; filename="{pdf_filename}.zip"',
+                    "X-Filename": pdf_filename,
                     "X-Typst-Warning": "Typst not installed; PDF skipped.",
                 },
             )
@@ -161,6 +162,7 @@ async def api_convert(
         media_type="application/zip",
         headers={
             "Content-Disposition": f'attachment; filename="{pdf_filename}.zip"',
+            "X-Filename": pdf_filename,
         },
     )
 

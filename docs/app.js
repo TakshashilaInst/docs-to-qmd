@@ -61,12 +61,54 @@
     dateInput.value = new Date().toISOString().slice(0, 10);
   }
 
+  // ── Auto-generate filename from title + date ─────────────────────────────
+  const titleInput = document.getElementById("title");
+  const fnInput    = document.getElementById("pdf_filename");
+  let fnUserEdited = false;
+
+  function makeFilename(title, date) {
+    const datePart = (date || "").replace(/-/g, "") ||
+      new Date().toISOString().slice(0, 10).replace(/-/g, "");
+    let slug = title.toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
+    if (slug.length > 45) slug = slug.slice(0, 45).replace(/-[^-]*$/, "");
+    return `${datePart}-${slug || "document"}`;
+  }
+
+  function updateFilename() {
+    if (fnUserEdited) return;
+    const title = titleInput ? titleInput.value.trim() : "";
+    const date  = dateInput.value.trim();
+    if (title && fnInput) fnInput.value = makeFilename(title, date);
+  }
+
+  if (titleInput) titleInput.addEventListener("input", updateFilename);
+  dateInput.addEventListener("change", updateFilename);
+  if (fnInput) fnInput.addEventListener("input", () => { fnUserEdited = !!fnInput.value; });
+  updateFilename();
+
+  // ── Collect category checkboxes into hidden field ────────────────────────
+  function syncCategories() {
+    const checked = [...document.querySelectorAll('input[name="categories_cb"]:checked')]
+      .map(cb => cb.value);
+    const hiddenCat = document.getElementById("categories");
+    if (hiddenCat) hiddenCat.value = checked.join(", ");
+  }
+  document.querySelectorAll('input[name="categories_cb"]').forEach(cb => {
+    cb.addEventListener("change", syncCategories);
+  });
+
   // ── Form submit ─────────────────────────────────────────────────────────────
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const mode = currentMode();
     if (!validateForm(mode)) return;
 
+    syncCategories();
     const runToken = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
     setLoading(true);
@@ -75,6 +117,9 @@
 
     // ── Build inputs for the workflow ───────────────────────────────────────
     const fd = new FormData(form);
+    // Remove checkbox group — hidden field already has the value
+    fd.delete("categories_cb");
+
     const inputs = {
       google_doc_url: fd.get("google_doc_url"),
       mode:           mode,
@@ -90,7 +135,8 @@
       inputs.tldr       = fd.get("tldr")       || "";
       inputs.doctype    = fd.get("doctype")    || "";
       inputs.docversion = fd.get("docversion") || "";
-      inputs.pdf_filename = fd.get("pdf_filename");
+      // Send whatever's in the field; if empty the backend auto-generates it
+      inputs.pdf_filename = fd.get("pdf_filename") || "";
       inputs.render_pdf   = document.getElementById("render_pdf").checked ? "true" : "false";
       inputs.slug       = "";
     } else {
@@ -189,7 +235,9 @@
       return;
     }
 
-    const stem = mode === "blog" ? inputs.slug : inputs.pdf_filename;
+    const stem = mode === "blog"
+      ? inputs.slug
+      : (inputs.pdf_filename || makeFilename(inputs.title, inputs.date));
     showSuccess(`${WORKER_URL}/download?token=${runToken}`, stem);
   });
 
@@ -217,8 +265,7 @@
   function validateForm(mode) {
     let ok = true;
     const required = ["google_doc_url", "title", "authors", "date"];
-    if (mode === "paper") required.push("pdf_filename");
-    if (mode === "blog")  required.push("slug");
+    if (mode === "blog") required.push("slug");
 
     required.forEach((id) => {
       const el = document.getElementById(id);

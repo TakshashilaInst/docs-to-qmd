@@ -129,9 +129,18 @@
             <input type="date" id="date" name="date" required />
           </div>
 
-          <div class="field">
-            <label for="categories">Categories <span class="hint">comma-separated</span></label>
-            <input type="text" id="categories" name="categories" placeholder="Defence, Indian Foreign Policy" />
+          <div class="field full">
+            <label>Categories</label>
+            <div class="cat-grid">
+              <label class="cat-chip"><input type="checkbox" name="categories_cb" value="Geostrategy"> Geostrategy</label>
+              <label class="cat-chip"><input type="checkbox" name="categories_cb" value="High-Tech Geopolitics"> High-Tech Geopolitics</label>
+              <label class="cat-chip"><input type="checkbox" name="categories_cb" value="Advanced Biology"> Advanced Biology</label>
+              <label class="cat-chip"><input type="checkbox" name="categories_cb" value="Geospatial Research"> Geospatial Research</label>
+              <label class="cat-chip"><input type="checkbox" name="categories_cb" value="Advanced Military Technologies &amp; Outer Space"> Advanced Military Technologies &amp; Outer Space</label>
+              <label class="cat-chip"><input type="checkbox" name="categories_cb" value="Strategic Studies"> Strategic Studies</label>
+              <label class="cat-chip"><input type="checkbox" name="categories_cb" value="Economic Policy"> Economic Policy</label>
+            </div>
+            <input type="hidden" id="categories" name="categories" />
           </div>
 
           <div class="field full paper-only">
@@ -158,15 +167,15 @@
         <!-- Paper only -->
         <div class="paper-only">
           <div class="field">
-            <label for="pdf_filename">Output filename stem <span class="req">*</span></label>
+            <label for="pdf_filename">Output filename stem</label>
             <div class="filename-row">
               <input type="text" id="pdf_filename" name="pdf_filename"
-                placeholder="EU-Rearm-India-09032026"
-                pattern="[A-Za-z0-9_\-]+"
+                placeholder="auto-generated from title + date"
+                pattern="[A-Za-z0-9_\-]*"
                 title="Letters, numbers, hyphens and underscores only" />
               <span class="filename-ext">.qmd / .pdf</span>
             </div>
-            <p class="field-hint">Use the format <code>ShortTitle-DDMMYYYY</code>. No spaces.</p>
+            <p class="field-hint">Auto-generated as <code>YYYYMMDD-kebab-title</code>. Override only if needed.</p>
           </div>
 
           <div class="checkbox-row">

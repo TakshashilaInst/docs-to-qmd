@@ -16,8 +16,10 @@ Handles:
 
 import io
 import re
+import sys
 import zipfile
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 from lxml import etree
@@ -29,17 +31,60 @@ from docx.text.paragraph import Paragraph as DocxParagraph
 from docx.text.run import Run as DocxRun
 
 
+# ── YAML / filename helpers ───────────────────────────────────────────────────
+
+ALLOWED_CATEGORIES = [
+    "Geostrategy",
+    "High-Tech Geopolitics",
+    "Advanced Biology",
+    "Geospatial Research",
+    "Advanced Military Technologies & Outer Space",
+    "Strategic Studies",
+    "Economic Policy",
+]
+
+
+def _yaml_quote(s: str) -> str:
+    """Wrap a string as a YAML double-quoted scalar (handles colons, special chars)."""
+    return '"' + str(s).replace('\\', '\\\\').replace('"', '\\"') + '"'
+
+
+def make_filename(title: str, date: str) -> str:
+    """Return canonical YYYYMMDD-kebab-slug filename stem from title and date."""
+    date_part = ""
+    for fmt in ("%Y-%m-%d", "%d-%m-%Y", "%Y%m%d", "%d%m%Y"):
+        try:
+            date_part = datetime.strptime(date.strip(), fmt).strftime("%Y%m%d")
+            break
+        except (ValueError, AttributeError):
+            pass
+    if not date_part:
+        date_part = datetime.today().strftime("%Y%m%d")
+
+    slug = title.lower()
+    slug = re.sub(r'[^a-z0-9\s-]', '', slug)
+    slug = re.sub(r'\s+', '-', slug.strip())
+    slug = re.sub(r'-+', '-', slug).strip('-')
+    if len(slug) > 45:
+        slug = slug[:45].rsplit('-', 1)[0]
+    return f"{date_part}-{slug or 'document'}"
+
+
 # ── YAML frontmatter ──────────────────────────────────────────────────────────
 
 def build_frontmatter(meta: dict, pdf_filename: str) -> str:
     """Build the YAML frontmatter block from metadata form fields."""
     authors = [a.strip() for a in meta.get("authors", "").split(",") if a.strip()]
-    categories = [c.strip() for c in meta.get("categories", "").split(",") if c.strip()]
+    raw_cats = [c.strip() for c in meta.get("categories", "").split(",") if c.strip()]
+    invalid = [c for c in raw_cats if c not in ALLOWED_CATEGORIES]
+    if invalid:
+        print(f"WARNING: unrecognised categories removed: {invalid}", file=sys.stderr)
+    categories = [c for c in raw_cats if c in ALLOWED_CATEGORIES]
 
     lines = ["---"]
-    lines.append(f'title: {meta["title"]}')
+    lines.append(f'title: {_yaml_quote(meta["title"])}')
     if meta.get("subtitle"):
-        lines.append(f'subtitle: {meta["subtitle"]}')
+        lines.append(f'subtitle: {_yaml_quote(meta["subtitle"])}')
     if authors:
         lines.append("author:")
         for a in authors:
@@ -870,10 +915,14 @@ def _table_to_qmd(table, caption: Optional[str] = None) -> list[str]:
 def build_blog_frontmatter(meta: dict, slug: str) -> str:
     """Build minimal YAML frontmatter for a blog post."""
     authors = [a.strip() for a in meta.get("authors", "").split(",") if a.strip()]
-    categories = [c.strip() for c in meta.get("categories", "").split(",") if c.strip()]
+    raw_cats = [c.strip() for c in meta.get("categories", "").split(",") if c.strip()]
+    invalid = [c for c in raw_cats if c not in ALLOWED_CATEGORIES]
+    if invalid:
+        print(f"WARNING: unrecognised categories removed: {invalid}", file=sys.stderr)
+    categories = [c for c in raw_cats if c in ALLOWED_CATEGORIES]
 
     lines = ["---"]
-    lines.append(f'title: {meta["title"]}')
+    lines.append(f'title: {_yaml_quote(meta["title"])}')
     if authors:
         lines.append("author:")
         for a in authors:
