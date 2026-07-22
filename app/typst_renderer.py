@@ -375,8 +375,10 @@ def _smart_short_title(title: str, max_chars: int = 30) -> str:
 
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not api_key:
+        print(f"[smart_title] no API key, falling back to truncation for: {title!r}")
         return _short_title(title, max_chars)
 
+    print(f"[smart_title] calling Claude Haiku for: {title!r}")
     try:
         import anthropic
         client = anthropic.Anthropic(api_key=api_key)
@@ -398,12 +400,14 @@ def _smart_short_title(title: str, max_chars: int = 30) -> str:
             }],
         )
         short = msg.content[0].text.strip().strip('"').strip("'")
+        print(f"[smart_title] Claude returned: {short!r}")
         # If Claude returned something sensible and short, use it
         if 0 < len(short) <= max_chars:
             return short
         # Claude returned something still too long — truncate it
         return _short_title(short, max_chars)
-    except Exception:
+    except Exception as e:
+        print(f"[smart_title] API error ({type(e).__name__}): {e}")
         return _short_title(title, max_chars)
 
 
