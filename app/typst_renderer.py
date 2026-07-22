@@ -351,7 +351,7 @@ def _c(s: str) -> str:
     return '[' + _escape(str(s)) + ']'
 
 
-def _short_title(title: str, max_chars: int = 48) -> str:
+def _short_title(title: str, max_chars: int = 32) -> str:
     """
     Return a header-safe version of title.
     If it's already short enough, return as-is.

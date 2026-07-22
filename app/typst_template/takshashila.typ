@@ -160,7 +160,7 @@
     fill: white,
     numbering: "1",
     header: {
-      set text(fill: primary, font: "TeX Gyre Pagella", size: 9pt, weight: "bold")
+      set text(fill: primary, font: "TeX Gyre Pagella", size: 9pt, weight: "bold", hyphenate: false)
       // Use header_title (auto-shortened) so long titles never overflow the header.
       let _ht = if header_title != "" { [#header_title] } else { title }
       grid(
