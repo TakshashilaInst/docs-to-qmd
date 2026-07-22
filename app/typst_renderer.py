@@ -6,6 +6,7 @@ The generated .typ file imports takshashila.typ from the same directory and
 uses it as a show-rule template.
 """
 
+import os
 import re
 import yaml
 
@@ -352,11 +353,7 @@ def _c(s: str) -> str:
 
 
 def _short_title(title: str, max_chars: int = 32) -> str:
-    """
-    Return a header-safe version of title.
-    If it's already short enough, return as-is.
-    Otherwise truncate at the last word boundary before max_chars and add '…'.
-    """
+    """Fallback: truncate at last word boundary before max_chars."""
     if len(title) <= max_chars:
         return title
     cut = title[:max_chars]
@@ -364,6 +361,50 @@ def _short_title(title: str, max_chars: int = 32) -> str:
     if last_space > max_chars // 2:
         return cut[:last_space] + '…'
     return cut + '…'
+
+
+def _smart_short_title(title: str, max_chars: int = 30) -> str:
+    """
+    Use Claude (Haiku) to produce a semantically meaningful short header title.
+    Drops filler openers ('Accelerating', 'Towards', etc.) and prefers the
+    substantive core rather than a blind character truncation.
+    Falls back to _short_title if ANTHROPIC_API_KEY is absent or the call fails.
+    """
+    if len(title) <= max_chars:
+        return title
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        return _short_title(title, max_chars)
+
+    try:
+        import anthropic
+        client = anthropic.Anthropic(api_key=api_key)
+        msg = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=60,
+            messages=[{
+                "role": "user",
+                "content": (
+                    f"Shorten this policy paper title to at most {max_chars} characters "
+                    f"for a running page header. Rules:\n"
+                    f"- Drop filler openers such as Accelerating, Understanding, Towards, "
+                    f"Examining, Rethinking, A Study of, An Analysis of, The Case for, etc.\n"
+                    f"- If there is a colon, keep whichever side better captures the core topic\n"
+                    f"- Keep substantive nouns; the result should read naturally\n"
+                    f"- No ellipsis, no quotes — output ONLY the shortened title\n\n"
+                    f"Title: {title}"
+                ),
+            }],
+        )
+        short = msg.content[0].text.strip().strip('"').strip("'")
+        # If Claude returned something sensible and short, use it
+        if 0 < len(short) <= max_chars:
+            return short
+        # Claude returned something still too long — truncate it
+        return _short_title(short, max_chars)
+    except Exception:
+        return _short_title(title, max_chars)
 
 
 def _build_typ_file(meta: dict, typst_body: str) -> str:
@@ -391,7 +432,7 @@ def _build_typ_file(meta: dict, typst_body: str) -> str:
     authors_typst += (',' if len(authors) == 1 else '') + ')'
 
     # Auto-shortened title for the running header (never wraps or overflows)
-    header_title = _short_title(title)
+    header_title = _smart_short_title(title)
 
     lines = [
         '#import "takshashila.typ": *',

@@ -112,19 +112,20 @@ jobs:
       # ── Conversion ──────────────────────────────────────────────────────────
       - name: Run conversion
         env:
-          DOC_URL:      ${{ inputs.google_doc_url }}
-          MODE:         ${{ inputs.mode }}
-          TITLE:        ${{ inputs.title }}
-          SUBTITLE:     ${{ inputs.subtitle }}
-          AUTHORS:      ${{ inputs.authors }}
-          DATE:         ${{ inputs.date }}
-          TLDR:         ${{ inputs.tldr }}
-          CATEGORIES:   ${{ inputs.categories }}
-          DOCTYPE:      ${{ inputs.doctype }}
-          DOCVERSION:   ${{ inputs.docversion }}
-          PDF_FILENAME: ${{ inputs.pdf_filename }}
-          SLUG:         ${{ inputs.slug }}
-          RENDER_PDF:   ${{ inputs.render_pdf }}
+          DOC_URL:           ${{ inputs.google_doc_url }}
+          MODE:              ${{ inputs.mode }}
+          TITLE:             ${{ inputs.title }}
+          SUBTITLE:          ${{ inputs.subtitle }}
+          AUTHORS:           ${{ inputs.authors }}
+          DATE:              ${{ inputs.date }}
+          TLDR:              ${{ inputs.tldr }}
+          CATEGORIES:        ${{ inputs.categories }}
+          DOCTYPE:           ${{ inputs.doctype }}
+          DOCVERSION:        ${{ inputs.docversion }}
+          PDF_FILENAME:      ${{ inputs.pdf_filename }}
+          SLUG:              ${{ inputs.slug }}
+          RENDER_PDF:        ${{ inputs.render_pdf }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           RENDER_FLAG=""
           if [ "$RENDER_PDF" = "true" ] && [ "$MODE" != "blog" ]; then
