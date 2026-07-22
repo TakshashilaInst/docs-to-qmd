@@ -131,10 +131,11 @@
     };
 
     if (mode === "paper") {
-      inputs.subtitle   = fd.get("subtitle")   || "";
-      inputs.tldr       = fd.get("tldr")       || "";
-      inputs.doctype    = fd.get("doctype")    || "";
-      inputs.docversion = fd.get("docversion") || "";
+      inputs.subtitle      = fd.get("subtitle")      || "";
+      inputs.tldr          = fd.get("tldr")          || "";
+      inputs.doctype       = fd.get("doctype")       || "";
+      inputs.docversion    = fd.get("docversion")    || "";
+      inputs.header_title  = fd.get("header_title")  || "";
       // Send whatever's in the field; if empty the backend auto-generates it
       inputs.pdf_filename = fd.get("pdf_filename") || "";
       inputs.render_pdf   = document.getElementById("render_pdf").checked ? "true" : "false";
