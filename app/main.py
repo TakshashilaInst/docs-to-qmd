@@ -52,6 +52,7 @@ async def api_convert(
     categories: str = Form(""),
     doctype: str = Form(""),
     docversion: str = Form(""),
+    header_title: str = Form(""),       # optional short header title for PDF running head
     pdf_filename: str = Form(""),       # required for paper
     slug: str = Form(""),               # required for blog
     render_pdf: bool = Form(True),
@@ -120,6 +121,7 @@ async def api_convert(
             "categories": categories,
             "doctype": doctype,
             "docversion": docversion,
+            "header_title": header_title,
         }
 
         try:

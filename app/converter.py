@@ -120,6 +120,8 @@ def build_frontmatter(meta: dict, pdf_filename: str) -> str:
         lines.append(f"doctype: {meta['doctype']}")
     if meta.get("docversion"):
         lines.append(f"docversion: {meta['docversion']}")
+    if meta.get("header_title"):
+        lines.append(f'header_title: {_yaml_quote(meta["header_title"])}')
     lines.append("---")
 
     # Download button div (HTML-only)

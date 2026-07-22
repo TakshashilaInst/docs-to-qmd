@@ -42,6 +42,10 @@ on:
         description: "Version string (paper only)"
         required: false
         default: ""
+      header_title:
+        description: "Short title for PDF running header (optional, leave blank to auto-truncate)"
+        required: false
+        default: ""
       pdf_filename:
         description: "Output filename stem for paper mode (no spaces or extension)"
         required: false
@@ -122,6 +126,7 @@ jobs:
           CATEGORIES:        ${{ inputs.categories }}
           DOCTYPE:           ${{ inputs.doctype }}
           DOCVERSION:        ${{ inputs.docversion }}
+          HEADER_TITLE:      ${{ inputs.header_title }}
           PDF_FILENAME:      ${{ inputs.pdf_filename }}
           SLUG:              ${{ inputs.slug }}
           RENDER_PDF:        ${{ inputs.render_pdf }}
@@ -142,6 +147,7 @@ jobs:
             --categories   "$CATEGORIES"   \
             --doctype      "$DOCTYPE"      \
             --docversion   "$DOCVERSION"   \
+            --header-title "$HEADER_TITLE" \
             --pdf-filename "$PDF_FILENAME" \
             --slug         "$SLUG"         \
             $RENDER_FLAG                   \

@@ -6,7 +6,6 @@ The generated .typ file imports takshashila.typ from the same directory and
 uses it as a show-rule template.
 """
 
-import os
 import re
 import yaml
 
@@ -363,53 +362,6 @@ def _short_title(title: str, max_chars: int = 32) -> str:
     return cut + '…'
 
 
-def _smart_short_title(title: str, max_chars: int = 30) -> str:
-    """
-    Use Claude (Haiku) to produce a semantically meaningful short header title.
-    Drops filler openers ('Accelerating', 'Towards', etc.) and prefers the
-    substantive core rather than a blind character truncation.
-    Falls back to _short_title if ANTHROPIC_API_KEY is absent or the call fails.
-    """
-    if len(title) <= max_chars:
-        return title
-
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
-    if not api_key:
-        print(f"[smart_title] no API key, falling back to truncation for: {title!r}")
-        return _short_title(title, max_chars)
-
-    print(f"[smart_title] calling Claude Haiku for: {title!r}")
-    try:
-        import anthropic
-        client = anthropic.Anthropic(api_key=api_key)
-        msg = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=60,
-            messages=[{
-                "role": "user",
-                "content": (
-                    f"Shorten this policy paper title to at most {max_chars} characters "
-                    f"for a running page header. Rules:\n"
-                    f"- Drop filler openers such as Accelerating, Understanding, Towards, "
-                    f"Examining, Rethinking, A Study of, An Analysis of, The Case for, etc.\n"
-                    f"- If there is a colon, keep whichever side better captures the core topic\n"
-                    f"- Keep substantive nouns; the result should read naturally\n"
-                    f"- No ellipsis, no quotes — output ONLY the shortened title\n\n"
-                    f"Title: {title}"
-                ),
-            }],
-        )
-        short = msg.content[0].text.strip().strip('"').strip("'")
-        print(f"[smart_title] Claude returned: {short!r}")
-        # If Claude returned something sensible and short, use it
-        if 0 < len(short) <= max_chars:
-            return short
-        # Claude returned something still too long — truncate it
-        return _short_title(short, max_chars)
-    except Exception as e:
-        print(f"[smart_title] API error ({type(e).__name__}): {e}")
-        return _short_title(title, max_chars)
-
 
 def _build_typ_file(meta: dict, typst_body: str) -> str:
     title = meta.get('title', '') or ''
@@ -435,8 +387,8 @@ def _build_typ_file(meta: dict, typst_body: str) -> str:
     # Typst needs trailing comma for single-element arrays
     authors_typst += (',' if len(authors) == 1 else '') + ')'
 
-    # Auto-shortened title for the running header (never wraps or overflows)
-    header_title = _smart_short_title(title)
+    # Use author-supplied short header if provided, otherwise truncate title
+    header_title = meta.get('header_title', '').strip() or _short_title(title)
 
     lines = [
         '#import "takshashila.typ": *',

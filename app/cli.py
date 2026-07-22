@@ -44,6 +44,7 @@ def main() -> None:
     parser.add_argument("--categories", default="", help="Categories (comma-separated)")
     parser.add_argument("--doctype", default="", help="Document type string (paper only)")
     parser.add_argument("--docversion", default="", help="Version string (paper only)")
+    parser.add_argument("--header-title", default="", dest="header_title", help="Short title for PDF running header (optional, ≤30 chars)")
     parser.add_argument(
         "--pdf-filename",
         default="document",
@@ -103,6 +104,7 @@ def main() -> None:
                 "categories": args.categories,
                 "doctype": args.doctype,
                 "docversion": args.docversion,
+                "header_title": args.header_title,
             }
             qmd_content = convert(doc, meta, args.pdf_filename, images_dir, docx_bytes=docx_bytes)
 
