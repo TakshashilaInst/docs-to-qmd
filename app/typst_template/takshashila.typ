@@ -150,7 +150,7 @@
   text(size: 10pt, style: "italic")[Recommended Citation: ]
   text(size: 10pt)[#author-str, "#title", #if doctype != "" [#doctype, ]#if docversion != "" [#docversion, ]The Takshashila Institution]
   v(8pt)
-  text(size: 12pt)[© The Takshashila Institution, 2025]
+  text(size: 12pt)[© The Takshashila Institution, #if date != "" { date.slice(0, 4) } else { "2026" }]
 
 
   // ── Body pages ─────────────────────────────────────────────────────────
@@ -282,5 +282,5 @@
   digital media.]
 
   v(30pt)
-  [© The Takshashila Institution, 2025]
+  [© The Takshashila Institution, #if date != "" { date.slice(0, 4) } else { "2026" }]
 }
