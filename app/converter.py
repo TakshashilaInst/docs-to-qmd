@@ -46,7 +46,7 @@ ALLOWED_CATEGORIES = [
     "Biosecurity", "Bioeconomy",
     # Geostrategy
     "Geostrategy", "China", "Pakistan", "Diplomacy", "Partnerships", "PLA",
-    "Maritime Security", "Indo-Pacific", "Japan",
+    "Maritime Security", "Indo-Pacific", "Japan", "United States", "US Congress",
     # Advanced Military Technologies
     "Advanced Military Technologies", "Defence Innovation",
     "Autonomous Weapons Systems", "Cybersecurity", "Military R&D", "Defence",
