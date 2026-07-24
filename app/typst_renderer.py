@@ -160,11 +160,23 @@ def _convert_body(body: str) -> str:
             continue
 
         # ── Numbered list ─────────────────────────────────────────────────────
-        m = re.match(r'^(\s*)\d+\.\s+(.*)', line)
+        m = re.match(r'^(\s*)(\d+\.)\s+(.*)', line)
         if m:
-            indent = (len(m.group(1)) // 2) * '  '
-            text = _convert_inline(m.group(2), footnotes)
-            result.append(f'{indent}+ {text}')
+            indent_str = m.group(1)
+            number = m.group(2)
+            content = m.group(3)
+            # Top-level item whose entire content is bold → treat as a section
+            # heading. Google Docs sometimes exports numbered section titles as
+            # "1. **Title**"; Typst list counters reset between items so they'd
+            # all print as "1." otherwise.
+            bold_whole = re.match(r'^\*\*(.+)\*\*$', content.strip())
+            if bold_whole and not indent_str:
+                text = _convert_inline(bold_whole.group(1), footnotes)
+                result.append(f'= {number} {text}')
+            else:
+                indent = (len(indent_str) // 2) * '  '
+                text = _convert_inline(content, footnotes)
+                result.append(f'{indent}+ {text}')
             i += 1
             continue
 

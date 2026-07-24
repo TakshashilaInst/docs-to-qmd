@@ -93,6 +93,8 @@ def make_filename(title: str, date: str) -> str:
 
 def build_frontmatter(meta: dict, pdf_filename: str) -> str:
     """Build the YAML frontmatter block from metadata form fields."""
+    # Strip whitespace from all string values to prevent tab/space corruption in YAML
+    meta = {k: v.strip() if isinstance(v, str) else v for k, v in meta.items()}
     authors = [a.strip() for a in meta.get("authors", "").split(",") if a.strip()]
     raw_cats = [c.strip() for c in meta.get("categories", "").split(",") if c.strip()]
     invalid = [c for c in raw_cats if c not in ALLOWED_CATEGORIES]
