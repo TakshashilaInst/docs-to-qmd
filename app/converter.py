@@ -18,7 +18,7 @@ import io
 import re
 import sys
 import zipfile
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -290,8 +290,16 @@ def _fn_para_to_markdown(p_elem, rels: dict[str, str]) -> str:
     """
     Convert a footnote paragraph element to markdown text, preserving hyperlinks.
     Handles w:r (plain runs), w:hyperlink (linked text), and w:ins (tracked inserts).
+
+    Duplicate-URL prevention: Google Docs often emits a <w:hyperlink> element
+    followed immediately by a plain <w:r> run whose text IS the same URL.
+    _linkify_bare_urls would then turn that run into a second [Link](url).
+    We track every URL (and URL-text) rendered inside a hyperlink and skip any
+    subsequent plain run whose stripped text matches one.
     """
     parts: list[str] = []
+    # URLs already rendered as [text](url) — plain runs matching these are skipped.
+    rendered_urls: set[str] = set()
 
     def _collect_runs(container) -> str:
         """Concatenate all w:t text inside a container element."""
@@ -301,6 +309,20 @@ def _fn_para_to_markdown(p_elem, rels: dict[str, str]) -> str:
             for t in r.findall(qn("w:t"))
             if t.text
         )
+
+    def _handle_hyperlink(elem) -> None:
+        r_id = elem.get(qn("r:id"))
+        url = rels.get(r_id, "") if r_id else ""
+        link_text = _collect_runs(elem).strip()
+        if url:
+            # Use "Link" when text is empty or is itself a URL
+            # (Google Docs auto-hyperlinks typed URLs so text == href)
+            display = link_text if (link_text and not link_text.startswith("http")) else "Link"
+            parts.append(f"[{display}]({url})")
+            rendered_urls.add(url)          # track the href
+            rendered_urls.add(link_text)    # track the display text (may also be a URL)
+        elif link_text:
+            parts.append(link_text)
 
     for child in p_elem:
         tag = child.tag
@@ -315,38 +337,27 @@ def _fn_para_to_markdown(p_elem, rels: dict[str, str]) -> str:
                     val = (rStyle.get(qn("w:val")) or "").lower()
                     if "hyperlink" in val:
                         continue
-            for t in child.findall(qn("w:t")):
-                if t.text:
-                    parts.append(t.text)
+            run_text = "".join(t.text for t in child.findall(qn("w:t")) if t.text)
+            # Skip plain runs whose text is a URL we already rendered as a link
+            if run_text.strip() in rendered_urls:
+                continue
+            if run_text:
+                parts.append(run_text)
 
         elif tag == qn("w:hyperlink"):
-            r_id = child.get(qn("r:id"))
-            url = rels.get(r_id, "") if r_id else ""
-            link_text = _collect_runs(child).strip()
-            if url:
-                # Use "Link" when text is empty or is itself a URL
-                # (Google Docs auto-hyperlinks typed URLs so text == href)
-                display = link_text if (link_text and not link_text.startswith("http")) else "Link"
-                parts.append(f"[{display}]({url})")
-            elif link_text:
-                parts.append(link_text)
+            _handle_hyperlink(child)
 
         elif tag == qn("w:ins"):
             # Tracked-change insertion — extract its children normally
             for sub in child:
                 if sub.tag == qn("w:r"):
-                    for t in sub.findall(qn("w:t")):
-                        if t.text:
-                            parts.append(t.text)
+                    run_text = "".join(t.text for t in sub.findall(qn("w:t")) if t.text)
+                    if run_text.strip() in rendered_urls:
+                        continue
+                    if run_text:
+                        parts.append(run_text)
                 elif sub.tag == qn("w:hyperlink"):
-                    r_id = sub.get(qn("r:id"))
-                    url = rels.get(r_id, "") if r_id else ""
-                    link_text = _collect_runs(sub).strip()
-                    if url:
-                        display = link_text if (link_text and not link_text.startswith("http")) else "Link"
-                        parts.append(f"[{display}]({url})")
-                    elif link_text:
-                        parts.append(link_text)
+                    _handle_hyperlink(sub)
 
     return "".join(parts).strip()
 
@@ -467,6 +478,7 @@ class ImageRef:
     filename: str       # e.g. "gagechina_1.png"
     blob: bytes
     para_elem_id: int   # id() of the paragraph _p element
+    alt_text: str = field(default="")  # from <wp:docPr descr="..."> or title
 
 
 def _extract_images(doc: Document, img_prefix: str = "img") -> list[ImageRef]:
@@ -496,12 +508,20 @@ def _extract_images(doc: Document, img_prefix: str = "img") -> list[ImageRef]:
             img_counter += 1
             ext = Path(rel.target_ref).suffix or ".png"
             filename = f"{img_prefix}_{img_counter}{ext}"
+            # Extract alt text / description from <wp:docPr descr="...">
+            doc_pr = drawing.find(".//" + qn("wp:docPr"))
+            alt_text = ""
+            if doc_pr is not None:
+                alt_text = (
+                    doc_pr.get("descr") or doc_pr.get("title") or ""
+                ).strip()
             images.append(
                 ImageRef(
                     index=img_counter,
                     filename=filename,
                     blob=rel.target_part.blob,
                     para_elem_id=id(para._p),
+                    alt_text=alt_text,
                 )
             )
     return images
@@ -696,9 +716,24 @@ def convert(
         para = item
 
         # Emit images attached to this paragraph
-        for img in para_to_images.get(id(para._p), []):
+        img_list = para_to_images.get(id(para._p), [])
+        for img_i, img in enumerate(img_list):
             raw_lines.append("")
-            raw_lines.append(f"![](images/{img.filename}){{width=100%}}")
+            alt = img.alt_text
+            # For the last image in this paragraph, peek at the next body item:
+            # if it's a "Caption"-styled paragraph or starts with "Figure N",
+            # use it as the image caption and consume it from the stream.
+            if img_i == len(img_list) - 1 and not alt and item_idx < item_count:
+                nxt_type, nxt_item = body_items[item_idx]
+                if nxt_type == "para":
+                    nxt_style = (nxt_item.style.name if nxt_item.style else "")
+                    nxt_text = nxt_item.text.strip()
+                    if "caption" in nxt_style.lower() or re.match(
+                        r'^[Ff]ig(?:ure)?s?\.?\s*[\d:]', nxt_text
+                    ):
+                        alt = nxt_text
+                        item_idx += 1  # consume the caption paragraph
+            raw_lines.append(f"![{alt}](images/{img.filename}){{width=100%}}")
             raw_lines.append("")
 
         style_name = para.style.name if para.style else "Normal"
