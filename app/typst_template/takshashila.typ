@@ -246,6 +246,22 @@
     }
   }
 
+  // ── Table of contents ──────────────────────────────────────────────────
+  show outline.entry.where(level: 1): it => {
+    v(0.4em, weak: true)
+    strong(it)
+  }
+  outline(
+    title: {
+      text(size: 13pt, weight: "bold", fill: primary)[Contents]
+      v(0.5em)
+      line(length: 100%, stroke: 0.5pt + primary)
+      v(0.3em)
+    },
+    depth: 3,
+    indent: 1.5em,
+  )
+
   body
 
   render_endnotes()
