@@ -196,7 +196,7 @@ def _convert_body(body: str) -> str:
         result.append('= ENDNOTES')
         result.append('')
         for n in sorted(footnotes.keys(), key=lambda x: int(x)):
-            content = _convert_inline(footnotes[n], {})
+            content = _escape_typst_brackets(_convert_inline(footnotes[n], {}))
             result.append('#block(above: 0pt, below: 0.55em)[')
             result.append('  #set text(size: 8.5pt, font: "TeX Gyre Pagella")')
             result.append('  #grid(columns: (1.6em, 1fr), column-gutter: 0.25em,')
@@ -206,6 +206,43 @@ def _convert_body(body: str) -> str:
             result.append(']')
 
     return '\n'.join(result)
+
+
+def _escape_typst_brackets(text: str) -> str:
+    """Escape literal [ and ] in Typst markup, leaving content-block delimiters intact.
+
+    In Typst, [ inside a function argument list opens a content block.  A bare ]
+    in the content can accidentally close that block early — e.g. the text
+    "[Ministry of Commerce of China]" inside an endnote grid cell would close the
+    cell's content block at the first ], leaving the rest of the endnote to be
+    parsed as code.  We must write those as \\[ and \\] so Typst renders them as
+    literal brackets without structural side-effects.
+
+    A [ that follows ) or an alphanumeric/underscore character is treated as a
+    Typst content-block opener (e.g. #link("url")[text], #super[…]) and is kept
+    as-is along with its matching ].  Everything else is escaped.
+    """
+    result: list[str] = []
+    depth = 0  # number of currently-open Typst content blocks
+    for i, ch in enumerate(text):
+        if ch == '[':
+            prev = text[i - 1] if i > 0 else ''
+            if depth > 0 or prev == ')' or prev.isalnum() or prev == '_':
+                # Content-block opener — track depth and keep
+                result.append('[')
+                depth += 1
+            else:
+                # Literal bracket — escape
+                result.append('\\[')
+        elif ch == ']':
+            if depth > 0:
+                result.append(']')
+                depth -= 1
+            else:
+                result.append('\\]')
+        else:
+            result.append(ch)
+    return ''.join(result)
 
 
 def _escape(text: str) -> str:
