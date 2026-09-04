@@ -281,6 +281,17 @@ def _para_to_inline_with_fn(para, get_fn_num) -> str:
 _BARE_URL_RE = re.compile(r'(?<![(\[<"])(https?://[^\s<>"\)\]]+)')
 # Matches an existing markdown link [text](url) — used to skip already-linked spans.
 _MD_LINK_RE = re.compile(r'\[[^\]]*\]\([^)]*(?:\([^)]*\)[^)]*)*\)')
+# Google redirect: https://www.google.com/search?q=https://actual-target.com/...
+_GOOGLE_REDIRECT_RE = re.compile(
+    r'^https?://(?:www\.)?google\.com/search\?(?:[^&]*&)*q=(https?://[^\s&]+)',
+    re.IGNORECASE,
+)
+
+
+def _resolve_redirect(url: str) -> str:
+    """Unwrap Google search-redirect URLs to their actual targets."""
+    m = _GOOGLE_REDIRECT_RE.match(url)
+    return m.group(1) if m else url
 
 
 def _linkify_bare_urls(text: str) -> str:
@@ -328,21 +339,23 @@ def _fn_para_to_markdown(p_elem, rels: dict[str, str]) -> str:
 
     def _handle_hyperlink(elem) -> None:
         r_id = elem.get(qn("r:id"))
-        url = rels.get(r_id, "") if r_id else ""
+        raw_url = rels.get(r_id, "") if r_id else ""
+        # Resolve Google redirect URLs (google.com/search?q=actual-url) to their
+        # real target so the PDF link goes directly to the source, not through Google.
+        url = _resolve_redirect(raw_url)
         link_text = _collect_runs(elem).strip()
         if url:
             # Use "Link" when text is empty or is itself a URL
             # (Google Docs auto-hyperlinks typed URLs so text == href)
             display = link_text if (link_text and not link_text.startswith("http")) else "Link"
             parts.append(f"[{display}]({url})")
-            rendered_urls.add(url)          # track the href
-            rendered_urls.add(link_text)    # track the display text (may also be a URL)
-            # Also track URLs embedded in redirect-style hrefs, e.g.
-            # https://www.google.com/search?q=http://actual-target.com — the
-            # plain run following the hyperlink element often contains the real
-            # target URL rather than the redirect, so we need to recognise it.
-            for embedded in re.findall(r'[?&=](https?://[^\s&"\'<>]+)', url):
-                rendered_urls.add(embedded)
+            # Track every URL variant so the duplicate plain run that Google Docs
+            # appends after every <w:hyperlink> element is recognised and skipped.
+            rendered_urls.add(url)          # resolved target URL
+            rendered_urls.add(raw_url)      # original redirect URL (Google Docs)
+            rendered_urls.add(link_text)    # display text (may also be a URL)
+            for embedded in re.findall(r'[?&=](https?://[^\s&"\'<>]+)', raw_url):
+                rendered_urls.add(embedded)  # URLs embedded in redirect ?q= param
         elif link_text:
             parts.append(link_text)
 
