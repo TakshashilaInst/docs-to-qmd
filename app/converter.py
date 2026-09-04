@@ -294,6 +294,18 @@ def _resolve_redirect(url: str) -> str:
     return m.group(1) if m else url
 
 
+def _dedup_links(text: str) -> str:
+    """Remove consecutive identical markdown links [text](url)[text](url) → [text](url).
+    Google Docs often emits a hyperlink element immediately followed by a plain
+    run containing the same URL; even after per-element dedup this catches any
+    that slip through (e.g. via _linkify_bare_urls)."""
+    return re.sub(
+        r'(\[[^\]]*\]\(([^)]+)\))(?:\s*\[[^\]]*\]\(\2\))+',
+        r'\1',
+        text,
+    )
+
+
 def _linkify_bare_urls(text: str) -> str:
     """Convert bare http(s) URLs to [Link](url) markdown links.
 
@@ -345,6 +357,11 @@ def _fn_para_to_markdown(p_elem, rels: dict[str, str]) -> str:
         url = _resolve_redirect(raw_url)
         link_text = _collect_runs(elem).strip()
         if url:
+            # Skip if this exact URL was already emitted as a hyperlink in this
+            # paragraph — Google Docs sometimes emits two <w:hyperlink> elements
+            # back-to-back for the same href (redirect + direct, or just duplicate).
+            if url in rendered_urls or raw_url in rendered_urls:
+                return
             # Use "Link" when text is empty or is itself a URL
             # (Google Docs auto-hyperlinks typed URLs so text == href)
             display = link_text if (link_text and not link_text.startswith("http")) else "Link"
@@ -441,7 +458,7 @@ def _extract_footnotes_from_bytes(docx_bytes: bytes) -> dict[int, str]:
             para_text = _fn_para_to_markdown(p, fn_rels)
             if para_text:
                 text_parts.append(para_text)
-        footnotes[fn_id] = _linkify_bare_urls(" ".join(text_parts))
+        footnotes[fn_id] = _dedup_links(_linkify_bare_urls(" ".join(text_parts)))
     return footnotes
 
 
@@ -490,7 +507,7 @@ def _extract_footnotes(doc: Document) -> dict[int, str]:
             para_text = _fn_para_to_markdown(p, fn_rels)
             if para_text:
                 text_parts.append(para_text)
-        footnotes[fn_id] = _linkify_bare_urls(" ".join(text_parts))
+        footnotes[fn_id] = _dedup_links(_linkify_bare_urls(" ".join(text_parts)))
     return footnotes
 
 
