@@ -279,11 +279,27 @@ def _para_to_inline_with_fn(para, get_fn_num) -> str:
 # ── Footnote extraction ────────────────────────────────────────────────────────
 
 _BARE_URL_RE = re.compile(r'(?<![(\[<"])(https?://[^\s<>"\)\]]+)')
+# Matches an existing markdown link [text](url) — used to skip already-linked spans.
+_MD_LINK_RE = re.compile(r'\[[^\]]*\]\([^)]*(?:\([^)]*\)[^)]*)*\)')
 
 
 def _linkify_bare_urls(text: str) -> str:
-    """Convert bare http(s) URLs to [Link](url) markdown links."""
-    return _BARE_URL_RE.sub(r'[Link](\1)', text)
+    """Convert bare http(s) URLs to [Link](url) markdown links.
+
+    Skips text that is already inside an existing markdown link [text](url),
+    including URLs that appear in a link's query-string parameters (e.g. a
+    Google redirect ?q=http://actual-target.com).
+    """
+    result: list[str] = []
+    last_end = 0
+    for m in _MD_LINK_RE.finditer(text):
+        # Linkify only the text *between* existing links
+        result.append(_BARE_URL_RE.sub(r'[Link](\1)', text[last_end:m.start()]))
+        # Keep the existing [text](url) span exactly as-is
+        result.append(m.group())
+        last_end = m.end()
+    result.append(_BARE_URL_RE.sub(r'[Link](\1)', text[last_end:]))
+    return ''.join(result)
 
 
 def _fn_para_to_markdown(p_elem, rels: dict[str, str]) -> str:
@@ -321,6 +337,12 @@ def _fn_para_to_markdown(p_elem, rels: dict[str, str]) -> str:
             parts.append(f"[{display}]({url})")
             rendered_urls.add(url)          # track the href
             rendered_urls.add(link_text)    # track the display text (may also be a URL)
+            # Also track URLs embedded in redirect-style hrefs, e.g.
+            # https://www.google.com/search?q=http://actual-target.com — the
+            # plain run following the hyperlink element often contains the real
+            # target URL rather than the redirect, so we need to recognise it.
+            for embedded in re.findall(r'[?&=](https?://[^\s&"\'<>]+)', url):
+                rendered_urls.add(embedded)
         elif link_text:
             parts.append(link_text)
 
