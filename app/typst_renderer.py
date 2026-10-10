@@ -273,19 +273,29 @@ def _convert_inline(text: str, footnotes: dict[str, str] | None = None) -> str:
     # Escape bare < (Typst treats <word as label opener, e.g. <25% → unclosed label)
     text = text.replace('<', r'\<')
 
-    # Bold+italic: ***text*** — use placeholders so stray * can be escaped below
+    # Bold+italic: ***text*** — use separate italic placeholders (IO/IC) so that when
+    # these spans later get wrapped by a __text__ bold placeholder (BO/BC), the italic
+    # markers stay null-byte-isolated and never produce a _*_ sequence in the final
+    # Typst output (which causes "unclosed delimiter" parse errors).
     _BO = '\x00BO\x00'
     _BC = '\x00BC\x00'
-    text = re.sub(r'\*\*\*(.+?)\*\*\*', lambda m: f'{_BO}_' + m.group(1) + f'_{_BC}', text)
+    _IO = '\x00IO\x00'  # italic-open inside a bold+italic span
+    _IC = '\x00IC\x00'  # italic-close inside a bold+italic span
+    text = re.sub(r'\*\*\*(.+?)\*\*\*', lambda m: f'{_BO}{_IO}' + m.group(1) + f'{_IC}{_BC}', text)
     # Bold: **text** or __text__ (both markdown bold variants)
     text = re.sub(r'\*\*(.+?)\*\*', lambda m: f'{_BO}' + m.group(1) + f'{_BC}', text)
     text = re.sub(r'__(.+?)__', lambda m: f'{_BO}' + m.group(1) + f'{_BC}', text)
+    # Escape any remaining __ that weren't paired (odd count, or cross-mixed with other
+    # markers) — they'd be interpreted as italic toggles in Typst and cause unclosed
+    # delimiter errors.
+    text = text.replace('__', r'\_\_')
     # Italic: *text* (not inside ** — already consumed above)
     text = re.sub(r'(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)', r'_\1_', text)
     # Escape stray * that weren't consumed as formatting (e.g. lone asterisk footnote markers)
     text = text.replace('*', r'\*')
-    # Restore bold markers
+    # Restore bold markers, then italic markers from bold+italic spans
     text = text.replace(_BO, '*').replace(_BC, '*')
+    text = text.replace(_IO, '_').replace(_IC, '_')
 
     # Hyperlinks: [text](url)
     def replace_link(m: re.Match) -> str:
